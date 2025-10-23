@@ -52,13 +52,6 @@ echo "=== Phase 8: Clean up ==="
 apt-get autoremove -y  
 apt-get clean  
 
-echo "=== Userdata completed successfully ==="   
-
-# Install Amazon EFS utilities (for mounting EFS with TLS support)
-cd /tmp
-git clone https://github.com/mamonaco1973/amazon-efs-utils.git
-cd amazon-efs-utils
-sudo dpkg -i amazon-efs-utils*.deb  
-which mount.efs  
+echo "=== Userdata completed successfully ==="    
 
 
