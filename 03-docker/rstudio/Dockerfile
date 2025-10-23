@@ -5,11 +5,6 @@ FROM ubuntu:24.04
 
 RUN  mkdir /rstudio
 
-# Add systemctl script to enable systemctl commands in the container
-
-COPY systemctl.py /usr/bin/systemctl
-RUN chmod a+x /usr/bin/systemctl
-
 # Install packages for RStudio and R
 
 COPY packages.sh /rstudio
@@ -37,4 +32,10 @@ EXPOSE 8787
 
 # Set the default command to run the RStudio server
 COPY startup.sh /rstudio/
+
+# Add systemctl script to enable systemctl commands in the container
+
+COPY systemctl.py /usr/bin/systemctl
+RUN chmod a+x /usr/bin/systemctl
+
 ENTRYPOINT [ "/rstudio/startup.sh" ]          
