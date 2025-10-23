@@ -15,6 +15,11 @@ RUN  chmod +x /rstudio/packages.sh && /rstudio/packages.sh
 COPY awscli.sh /rstudio
 RUN  chmod +x /rstudio/awscli.sh && /rstudio/awscli.sh
 
+# Install rstudio server
+
+COPY rstudio.sh /rstudio
+RUN  chmod +x /rstudio/rstudio.sh && /rstudio/rstudio.sh
+
 # Create local user for RStudio server -  If the identity provider fails 
 # we can still log in with this local user.
 
