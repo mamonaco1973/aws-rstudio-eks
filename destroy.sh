@@ -16,7 +16,7 @@ terraform destroy -auto-approve
 cd .. || exit
 
 # ------------------------------------------------------------------------------------------------
-# Phase 4: Delete AD secrets and destroy AD Domain Controller
+# Delete AD secrets and destroy AD Domain Controller
 # ------------------------------------------------------------------------------------------------
 echo "NOTE: Deleting AD-related AWS secrets and parameters..."
 
@@ -34,6 +34,10 @@ for secret in \
         --secret-id "$secret" \
         --force-delete-without-recovery
 done
+
+aws ecr delete-repository --repository-name "rstudio" --force || {
+    echo "WARNING: Failed to delete ECR repository. It may not exist."
+}
 
 echo "NOTE: Destroying AD instance..."
 

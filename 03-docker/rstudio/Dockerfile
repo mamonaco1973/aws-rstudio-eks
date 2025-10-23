@@ -35,7 +35,10 @@ COPY startup.sh /rstudio/
 
 # Add systemctl script to enable systemctl commands in the container
 
+# Remove the real systemctl binary (from systemd package)
+
+RUN rm -f /usr/bin/systemctl
 COPY systemctl.py /usr/bin/systemctl
-RUN chmod a+x /usr/bin/systemctl
+RUN chmod +x /usr/bin/systemctl
 
 ENTRYPOINT [ "/rstudio/startup.sh" ]          
