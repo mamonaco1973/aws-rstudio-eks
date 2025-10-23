@@ -128,7 +128,7 @@ resource "aws_route_table" "public" {
 resource "aws_route" "public_default" {
   route_table_id         = aws_route_table.public.id
   destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.eks_igw.id
+  gateway_id             = aws_internet_gateway.eks-igw.id
 }
 
 resource "aws_route_table" "private" {
