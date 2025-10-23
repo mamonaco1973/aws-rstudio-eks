@@ -2047,9 +2047,9 @@ class Systemctl:
             return (EXPAND_KEEP_VARS and namevar or "")
         #
         maxdepth = EXPAND_VARS_MAXDEPTH
-        expanded = re.sub("[$](\w+)", lambda m: get_env1(m), cmd.replace("\\\n",""))
+        expanded = re.sub(r"[$](\w+)", lambda m: get_env1(m), cmd.replace("\\\n",""))
         for depth in xrange(maxdepth):
-            new_text = re.sub("[$][{](\w+)[}]", lambda m: get_env2(m), expanded)
+            new_text = re.sub(r"[$][{](\w+)[}]", lambda m: get_env2(m), expanded)
             if new_text == expanded:
                 return expanded
             expanded = new_text
@@ -2141,11 +2141,11 @@ class Systemctl:
                 return env[m.group(1)]
             logg.debug("can not expand ${%s}", m.group(1))
             return "" # empty string
-        cmd3 = re.sub("[$](\w+)", lambda m: get_env1(m), cmd2)
+        cmd3 = re.sub(r"[$](\w+)", lambda m: get_env1(m), cmd2)
         newcmd = []
         for part in shlex.split(cmd3):
-            # newcmd += [ re.sub("[$][{](\w+)[}]", lambda m: get_env2(m), part) ]
-            newcmd += [ re.sub("[$][{](\w+)[}]", lambda m: get_env2(m), self.expand_special(part, conf)) ]
+            # newcmd += [ re.sub(r"[$][{](\w+)[}]", lambda m: get_env2(m), part) ]
+            newcmd += [ re.sub(r"[$][{](\w+)[}]", lambda m: get_env2(m), self.expand_special(part, conf)) ]
         return newcmd
     def remove_service_directories(self, conf, section = "Service"):
         ok = True
