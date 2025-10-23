@@ -32,9 +32,9 @@ RUN useradd -m -s /bin/bash ${USER} && \
     echo "${USER}:rstudio" | chpasswd && \
     adduser ${USER} sudo
 
-# Expose port 8000 for the Flask application
+# Expose port 8787 for the RStudio server
 EXPOSE 8787                                         
 
-# Set the default command to run the Flask application
+# Set the default command to run the RStudio server
 COPY startup.sh /rstudio/
 ENTRYPOINT [ "/rstudio/startup.sh" ]          
