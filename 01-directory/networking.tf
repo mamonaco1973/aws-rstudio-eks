@@ -121,7 +121,7 @@ resource "aws_nat_gateway" "eks_nat" {
 # - Private: default route to NAT
 # ------------------------------------------------------------------------------------------
 resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.ad-vpc.id
+  vpc_id = aws_vpc.eks-vpc.id
   tags   = { Name = "public-route-table" }
 }
 
