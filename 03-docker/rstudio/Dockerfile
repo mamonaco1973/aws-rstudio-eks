@@ -5,9 +5,20 @@ FROM ubuntu:24.04
 
 RUN  mkdir /rstudio
 
-# Copy application files to the /rstudio directory in the container
+# Add systemctl script to enable systemctl commands in the container
+
+COPY ./assets/systemctl.py /usr/bin/systemctl
+RUN chmod a+x /usr/bin/systemctl
+
+# Install packages for RStudio and R
+
 COPY packages.sh /rstudio
 RUN  chmod +x /rstudio/packages.sh && /rstudio/packages.sh
+
+# Install aws cli
+
+COPY awscli.sh /rstudio
+RUN  chmod +x /rstudio/awscli.sh && /rstudio/awscli.sh
         
 # Expose port 8000 for the Flask application
 EXPOSE 8787                                         
