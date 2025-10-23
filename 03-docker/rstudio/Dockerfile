@@ -6,8 +6,8 @@ FROM ubuntu:24.04
 RUN  mkdir /rstudio
 
 # Copy application files to the /rstudio directory in the container
-COPY awscli.sh /rstudio
-RUN  chmod +x /rstudio/awscli.sh && /rstudio/awscli.sh
+COPY packages.sh /rstudio
+RUN  chmod +x /rstudio/packages.sh && /rstudio/packages.sh
         
 # Expose port 8000 for the Flask application
 EXPOSE 8787                                         
