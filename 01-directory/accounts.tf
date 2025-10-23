@@ -2,7 +2,7 @@
 resource "random_password" "admin_password" {
   length           = 24    # Set password length to 24 characters
   special          = true  # Include special characters in the password
-  override_special = "_-." # Limit special characters to this set
+  override_special = "_." # Limit special characters to this set
 }
 
 # Create an AWS Secrets Manager secret to store AD Admin credentials
