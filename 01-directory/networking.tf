@@ -22,12 +22,12 @@
 # VPC
 # - Lab VPC with DNS support and hostnames enabled
 # ------------------------------------------------------------------------------------------
-resource "aws_vpc" "ad-vpc" {
+resource "aws_vpc" "eks-vpc" {
   cidr_block           = "10.0.0.0/23"
   enable_dns_support   = true
   enable_dns_hostnames = true
 
-  tags = { Name = "ad-vpc" }
+  tags = { Name = "eks-vpc" }
 }
 
 
@@ -35,9 +35,9 @@ resource "aws_vpc" "ad-vpc" {
 # Internet Gateway
 # - Provides internet egress for NAT/public subnets
 # ------------------------------------------------------------------------------------------
-resource "aws_internet_gateway" "ad-igw" {
-  vpc_id = aws_vpc.ad-vpc.id
-  tags   = { Name = "ad-igw" }
+resource "aws_internet_gateway" "eks-igw" {
+  vpc_id = aws_vpc.eks-vpc.id
+  tags   = { Name = "eks-igw" }
 }
 
 
@@ -49,26 +49,26 @@ resource "aws_internet_gateway" "ad-igw" {
 # - pub-subnet-2: NAT placement (public, AZ6)
 # - ad-subnet: domain controllers (private, AZ4)
 # ------------------------------------------------------------------------------------------
-resource "aws_subnet" "vm-subnet-1" {
-  vpc_id                  = aws_vpc.ad-vpc.id
+resource "aws_subnet" "priv-subnet-1" {
+  vpc_id                  = aws_vpc.eks-vpc.id
   cidr_block              = "10.0.0.64/26"
   map_public_ip_on_launch = true # Still assigns public IPs, but route table = NAT
   availability_zone_id    = "use1-az6"
 
-  tags = { Name = "vm-subnet-1" }
+  tags = { Name = "priv-subnet-1" }
 }
 
-resource "aws_subnet" "vm-subnet-2" {
-  vpc_id                  = aws_vpc.ad-vpc.id
+resource "aws_subnet" "priv-subnet-2" {
+  vpc_id                  = aws_vpc.eks-vpc.id
   cidr_block              = "10.0.0.128/26"
   map_public_ip_on_launch = true # Still assigns public IPs, but route table = NAT
   availability_zone_id    = "use1-az4"
 
-  tags = { Name = "vm-subnet-2" }
+  tags = { Name = "priv-subnet-2" }
 }
 
 resource "aws_subnet" "pub-subnet-1" {
-  vpc_id                  = aws_vpc.ad-vpc.id
+  vpc_id                  = aws_vpc.eks-vpc.id
   cidr_block              = "10.0.0.192/26"
   map_public_ip_on_launch = true
   availability_zone_id    = "use1-az4"
@@ -77,7 +77,7 @@ resource "aws_subnet" "pub-subnet-1" {
 }
 
 resource "aws_subnet" "pub-subnet-2" {
-  vpc_id                  = aws_vpc.ad-vpc.id
+  vpc_id                  = aws_vpc.eks-vpc.id
   cidr_block              = "10.0.1.0/26"
   map_public_ip_on_launch = true
   availability_zone_id    = "use1-az6"
@@ -86,7 +86,7 @@ resource "aws_subnet" "pub-subnet-2" {
 }
 
 resource "aws_subnet" "ad-subnet" {
-  vpc_id                  = aws_vpc.ad-vpc.id
+  vpc_id                  = aws_vpc.eks-vpc.id
   cidr_block              = "10.0.0.0/26"
   map_public_ip_on_launch = false
   availability_zone_id    = "use1-az4"
@@ -108,10 +108,10 @@ resource "aws_eip" "nat_eip" {
 # NAT Gateway
 # - Placed in public subnet; provides outbound internet to private subnets
 # ------------------------------------------------------------------------------------------
-resource "aws_nat_gateway" "ad_nat" {
+resource "aws_nat_gateway" "eks_nat" {
   subnet_id     = aws_subnet.pub-subnet-1.id
   allocation_id = aws_eip.nat_eip.id
-  tags          = { Name = "ad-nat" }
+  tags          = { Name = "eks-nat" }
 }
 
 
@@ -128,18 +128,18 @@ resource "aws_route_table" "public" {
 resource "aws_route" "public_default" {
   route_table_id         = aws_route_table.public.id
   destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.ad-igw.id
+  gateway_id             = aws_internet_gateway.eks_igw.id
 }
 
 resource "aws_route_table" "private" {
-  vpc_id = aws_vpc.ad-vpc.id
+  vpc_id = aws_vpc.eks-vpc.id
   tags   = { Name = "private-route-table" }
 }
 
 resource "aws_route" "private_default" {
   route_table_id         = aws_route_table.private.id
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.ad_nat.id
+  nat_gateway_id         = aws_nat_gateway.eks_nat.id
 }
 
 
@@ -148,13 +148,13 @@ resource "aws_route" "private_default" {
 # - vm-subnets + ad-subnet → private route table (egress via NAT)
 # - pub-subnets → public route table (egress via IGW)
 # ------------------------------------------------------------------------------------------
-resource "aws_route_table_association" "rt_assoc_vm_public" {
-  subnet_id      = aws_subnet.vm-subnet-1.id
+resource "aws_route_table_association" "rt_assoc_priv_subnet_1" {
+  subnet_id      = aws_subnet.priv-subnet-1.id
   route_table_id = aws_route_table.private.id
 }
 
-resource "aws_route_table_association" "rt_assoc_vm_public_2" {
-  subnet_id      = aws_subnet.vm-subnet-2.id
+resource "aws_route_table_association" "rt_assoc_priv_subnet_2" {
+  subnet_id      = aws_subnet.priv-subnet-2.id
   route_table_id = aws_route_table.private.id
 }
 

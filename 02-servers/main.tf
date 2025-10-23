@@ -33,17 +33,17 @@ data "aws_secretsmanager_secret" "admin_secret" {
 # Subnet Lookups
 # - Retrieves subnets by tag for VM placement, public ALB, and AD servers
 # ------------------------------------------------------------------------------------------
-data "aws_subnet" "vm_subnet_1" {
+data "aws_subnet" "priv_subnet_1" {
   filter {
     name   = "tag:Name"
-    values = ["vm-subnet-1"]
+    values = ["priv-subnet-1"]
   }
 }
 
-data "aws_subnet" "vm_subnet_2" {
+data "aws_subnet" "priv_subnet_2" {
   filter {
     name   = "tag:Name"
-    values = ["vm-subnet-2"]
+    values = ["priv-subnet-2"]
   }
 }
 
@@ -73,10 +73,10 @@ data "aws_subnet" "ad_subnet" {
 # VPC Lookup
 # - Retrieves AD-specific VPC by Name tag
 # ------------------------------------------------------------------------------------------
-data "aws_vpc" "ad_vpc" {
+data "aws_vpc" "eks_vpc" {
   filter {
     name   = "tag:Name"
-    values = ["ad-vpc"]
+    values = ["eks-vpc"]
   }
 }
 
