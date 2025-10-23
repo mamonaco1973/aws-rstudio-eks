@@ -21,8 +21,8 @@ echo "=== Phase 1: Base utilities and AD join tools ==="
 apt-get install -y less unzip realmd sssd-ad sssd-tools libnss-sss \
     libpam-sss adcli samba-common-bin samba-libs oddjob \
     oddjob-mkhomedir packagekit krb5-user nano vim stunnel4 \
-    nfs-common curl
-
+    nfs-common curl sudo passwd adduser 
+ 
 echo "=== Phase 2: Core build chain for R ==="  
 apt-get install -y build-essential gfortran python3-pip \
     libxml2-dev libcurl4-openssl-dev libssl-dev cmake

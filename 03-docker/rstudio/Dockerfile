@@ -19,7 +19,19 @@ RUN  chmod +x /rstudio/packages.sh && /rstudio/packages.sh
 
 COPY awscli.sh /rstudio
 RUN  chmod +x /rstudio/awscli.sh && /rstudio/awscli.sh
-        
+
+# Create local user for RStudio server -  If the identity provider fails 
+# we can still log in with this local user.
+
+# Define environment variables
+ENV USER=rstudio \
+    HOME=/home/rstudio
+
+# Create the user and home directory
+RUN useradd -m -s /bin/bash ${USER} && \
+    echo "${USER}:rstudio" | chpasswd && \
+    adduser ${USER} sudo
+
 # Expose port 8000 for the Flask application
 EXPOSE 8787                                         
 
