@@ -7,7 +7,7 @@ RUN  mkdir /rstudio
 
 # Add systemctl script to enable systemctl commands in the container
 
-COPY ./assets/systemctl.py /usr/bin/systemctl
+COPY systemctl.py /usr/bin/systemctl
 RUN chmod a+x /usr/bin/systemctl
 
 # Install packages for RStudio and R
