@@ -56,27 +56,3 @@ EOF
 
 chmod +x /etc/pam.d/rstudio-mkhomedir.sh
 
-# # ---------------------------------------------------------------------------------
-# # Create minimal systemd service file for RStudio Server
-# # ---------------------------------------------------------------------------------
-# # This ensures compatibility with containers or environments using mock 'systemctl'.
-# # It does NOT require a running systemd service manager.
-# # ---------------------------------------------------------------------------------
-# mkdir -p /lib/systemd/system
-
-# cat <<'EOF' | tee /lib/systemd/system/rstudio-server.service > /dev/null
-# [Unit]
-# Description=RStudio Server
-# After=network.target
-
-# [Service]
-# Type=simple
-# ExecStart=/usr/lib/rstudio-server/bin/rserver --server-daemonize=0
-# Restart=always
-# User=root
-# Group=root
-# WorkingDirectory=/usr/lib/rstudio-server
-
-# [Install]
-# WantedBy=multi-user.target
-# EOF
