@@ -38,6 +38,7 @@ EXPOSE 8787
 # Set the default command to run the RStudio server
 COPY startup.sh /rstudio/
 RUN chmod +x /rstudio/startup.sh
+COPY logging.conf /etc/rstudio/
 
 # Add systemctl script to enable systemctl commands in the container
 
@@ -46,5 +47,9 @@ RUN chmod +x /rstudio/startup.sh
 RUN rm -f /usr/bin/systemctl
 COPY systemctl.py /usr/bin/systemctl
 RUN chmod +x /usr/bin/systemctl
+
+RUN mkdir -p /var/log/rstudio/rstudio-server && \
+    chown -R rstudio-server:rstudio-server /var/log/rstudio && \
+    chmod -R 777 /var/log/rstudio
 
 ENTRYPOINT [ "/rstudio/startup.sh" ]          
