@@ -36,4 +36,5 @@ RUN useradd -m -s /bin/bash ${USER} && \
 EXPOSE 8787                                         
 
 # Set the default command to run the Flask application
+COPY startup.sh /rstudio/
 ENTRYPOINT [ "/rstudio/startup.sh" ]          
