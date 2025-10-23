@@ -4,7 +4,6 @@
 # Configuration
 # ------------------------------------------------------------------------------------------------
 export AWS_DEFAULT_REGION="us-east-1"   # AWS region where resources will be deployed
-DNS_ZONE="mcloud.mikecloud.com"         # AD DNS domain (passed into Terraform modules)
 set -euo pipefail
 
 # ------------------------------------------------------------------------------------------------
@@ -42,6 +41,41 @@ terraform apply -auto-approve
 
 cd .. || exit
 
+# ------------------------------------------------------------------------------------------------
+# Phase 3: Build RStudio Docker Container and Push to ECR
+# ------------------------------------------------------------------------------------------------
+
+cd 03-docker/rstudio || { echo "ERROR: Directory 03-docker/rstudio not found"; exit 1; }
+
+# Get AWS Account ID dynamically to reference the correct ECR repo
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+if [ -z "$AWS_ACCOUNT_ID" ]; then
+    echo "ERROR: Failed to retrieve AWS Account ID. Exiting."
+    exit 1
+fi
+
+# Authenticate Docker to AWS ECR using get-login-password and piping to login command
+aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com || {
+    echo "ERROR: Docker authentication to ECR failed. Exiting."
+    exit 1
+}
+
+IMAGE_TAG="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/rstudio:rstudio-server-rc1"
+docker build -t $IMAGE_TAG . || { echo "ERROR: Docker build failed. Exiting."; exit 1; }
+docker push $IMAGE_TAG || { echo "ERROR: Docker push failed. Exiting."; exit 1; }
+cd .
+
+# Build the Docker image
+# docker build -t rstudio:latest .
+
+# # Tag the image for ECR
+# docker tag rstudio:latest ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/rstudio:latest
+
+# # Push the image to ECR
+# $(aws ecr get-login --no-include-email --region us-east-1)
+# docker push ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/rstudio:latest
+
+cd ../../.. || exit
 
 # ------------------------------------------------------------------------------------------------
 # Build Validation
