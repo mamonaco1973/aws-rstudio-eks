@@ -37,6 +37,7 @@ EXPOSE 8787
 
 # Set the default command to run the RStudio server
 COPY startup.sh /rstudio/
+RUN chmod +x /rstudio/startup.sh
 
 # Add systemctl script to enable systemctl commands in the container
 
