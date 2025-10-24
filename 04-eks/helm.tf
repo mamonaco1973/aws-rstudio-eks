@@ -87,31 +87,31 @@ resource "helm_release" "cluster_autoscaler" {
    depends_on = [kubernetes_service_account.cluster_autoscaler]
 }
 
-# ################################################################################
-# # Deploy NGINX Ingress Controller with Helm                                    #
-# # Provides an HTTP(S) load balancer and reverse proxy for Kubernetes services.#
-# # Required for routing external traffic to in-cluster services using Ingress. #
-# ################################################################################
+################################################################################
+# Deploy NGINX Ingress Controller with Helm                                    #
+# Provides an HTTP(S) load balancer and reverse proxy for Kubernetes services.#
+# Required for routing external traffic to in-cluster services using Ingress. #
+################################################################################
 
-# resource "helm_release" "nginx_ingress" {
+resource "helm_release" "nginx_ingress" {
 
-#   depends_on = [helm_release.aws_load_balancer_controller]
+  depends_on = [helm_release.aws_load_balancer_controller]
 
-#   name       = "nginx-ingress"
-#   # Helm release name shown in cluster metadata
+  name       = "nginx-ingress"
+  # Helm release name shown in cluster metadata
 
-#   namespace  = "ingress-nginx"
-#   # Deployed into its own namespace to isolate ingress controller resources
+  namespace  = "ingress-nginx"
+  # Deployed into its own namespace to isolate ingress controller resources
 
-#   repository = "https://kubernetes.github.io/ingress-nginx"
-#   # Official ingress-nginx Helm chart repository
+  repository = "https://kubernetes.github.io/ingress-nginx"
+  # Official ingress-nginx Helm chart repository
 
-#   chart      = "ingress-nginx"
-#   # Chart name for deploying the ingress controller
+  chart      = "ingress-nginx"
+  # Chart name for deploying the ingress controller
 
-#   create_namespace = true
-#   # Automatically creates the 'ingress-nginx' namespace if it doesn't exist
+  create_namespace = true
+  # Automatically creates the 'ingress-nginx' namespace if it doesn't exist
 
-#   values = [file("${path.module}/yaml/nginx-values.yaml")]
-#   # Load custom Helm chart values from external YAML file for better readability
-# }
+  values = [file("${path.module}/yaml/nginx-values.yaml")]
+  # Load custom Helm chart values from external YAML file for better readability
+}
