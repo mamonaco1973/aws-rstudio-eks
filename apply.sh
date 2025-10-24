@@ -60,20 +60,31 @@ aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --usern
     exit 1
 }
 
+RSTUDIO_PASSWORD=$(aws secretsmanager get-secret-value \
+  --secret-id rstudio_ad_credentials \
+  --query 'SecretString' \
+  --output text | jq -r '.password')
+
+if [ -z "$RSTUDIO_PASSWORD" ] || [ "$RSTUDIO_PASSWORD" = "null" ]; then
+    echo "ERROR: Failed to retrieve RStudio password from Secrets Manager. Exiting."
+    exit 1
+fi
+
 IMAGE_TAG="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/rstudio:rstudio-server-rc1"
-docker build -t $IMAGE_TAG . || { echo "ERROR: Docker build failed. Exiting."; exit 1; }
-docker push $IMAGE_TAG || { echo "ERROR: Docker push failed. Exiting."; exit 1; }
+
+docker build \
+  --build-arg RSTUDIO_PASSWORD="${RSTUDIO_PASSWORD}" \
+  -t "${IMAGE_TAG}" . || {
+    echo "ERROR: Docker build failed. Exiting."
+    exit 1
+  }
+
+docker push "${IMAGE_TAG}" || {
+    echo "ERROR: Docker push failed. Exiting."
+    exit 1
+}
+
 cd .
-
-# Build the Docker image
-# docker build -t rstudio:latest .
-
-# # Tag the image for ECR
-# docker tag rstudio:latest ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/rstudio:latest
-
-# # Push the image to ECR
-# $(aws ecr get-login --no-include-email --region us-east-1)
-# docker push ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/rstudio:latest
 
 cd ../../.. || exit
 
