@@ -42,7 +42,7 @@ resource "helm_release" "aws_load_balancer_controller" {
 
   values = [
     templatefile("${path.module}/yaml/aws-load-balancer.yaml.tmpl", {
-      cluster_name = aws_eks_cluster.flask_eks.name
+      cluster_name = aws_eks_cluster.rstudio_eks.name
       # The EKS cluster name passed as a template variable – used in the Helm chart's config
 
       role_arn     = module.load_balancer_controller_irsa.iam_role_arn
@@ -78,7 +78,7 @@ resource "helm_release" "cluster_autoscaler" {
 
   values = [
     templatefile("${path.module}/yaml/autoscaler.yaml.tmpl", {
-      cluster_name = aws_eks_cluster.flask_eks.name
+      cluster_name = aws_eks_cluster.rstudio_eks.name
       # Cluster name used in the configuration to target the correct node groups for scaling
     })
   ]
