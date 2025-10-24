@@ -80,6 +80,7 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
           "elasticloadbalancing:DeleteLoadBalancerListeners",
           "elasticloadbalancing:ModifyLoadBalancerAttributes",
           "cognito-idp:DescribeUserPoolClient",
+          "ec2:DescribeRouteTables", 
           "acm:ListCertificates",
           "acm:DescribeCertificate",
           "acm:RequestCertificate",
