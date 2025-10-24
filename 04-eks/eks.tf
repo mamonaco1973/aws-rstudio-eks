@@ -115,3 +115,8 @@ resource "kubernetes_service_account" "cluster_autoscaler" {
     }
   }
 }
+
+data "aws_eks_cluster_auth" "rstudio_eks" {
+  name = aws_eks_cluster.rstudio_eks.name
+}
+
