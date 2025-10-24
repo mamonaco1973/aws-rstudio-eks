@@ -131,3 +131,48 @@ resource "aws_iam_role_policy_attachment" "cluster_autoscaler_attach" {
   role       = aws_iam_role.cluster_autoscaler.name           # IAM role to attach the policy to
   policy_arn = aws_iam_policy.cluster_autoscaler.arn          # Attach the custom cluster-autoscaler policy
 }
+
+# ======================================================
+# IAM Role for AWS Load Balancer Controller (IRSA)
+# ======================================================
+resource "aws_iam_role" "aws_load_balancer_controller" {
+  name = "aws-load-balancer-controller"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.eks_oidc_provider.arn
+        },
+        Action = "sts:AssumeRoleWithWebIdentity",
+        Condition = {
+          StringEquals = {
+            # Must match the service account name and namespace used by your Helm chart
+            "${replace(aws_iam_openid_connect_provider.eks_oidc_provider.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# ======================================================
+# AWS Managed Policy for Load Balancer Controller
+# ======================================================
+resource "aws_iam_policy" "aws_load_balancer_controller" {
+  name        = "AWSLoadBalancerControllerIAMPolicy"
+  description = "Official AWS Load Balancer Controller policy"
+
+  # Downloaded from https://github.com/kubernetes-sigs/aws-load-balancer-controller/blob/main/docs/install/iam_policy.json
+  policy = file("${path.module}/iam_policies/aws_load_balancer_controller_policy.json")
+}
+
+# ======================================================
+# Attach Policy to IAM Role
+# ======================================================
+resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller_attach" {
+  role       = aws_iam_role.aws_load_balancer_controller.name
+  policy_arn = aws_iam_policy.aws_load_balancer_controller.arn
+}
