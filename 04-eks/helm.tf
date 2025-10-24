@@ -115,13 +115,3 @@ resource "helm_release" "nginx_ingress" {
   values = [file("${path.module}/yaml/nginx-values.yaml")]
   # Load custom Helm chart values from external YAML file for better readability
 }
-
-resource "kubernetes_service_account" "cluster_autoscaler" {
-  metadata {
-    name      = "cluster-autoscaler"
-    namespace = "kube-system"
-    annotations = {
-      "eks.amazonaws.com/role-arn" = module.cluster_autoscaler_irsa.iam_role_arn
-    }
-  }
-}
