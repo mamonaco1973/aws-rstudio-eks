@@ -135,3 +135,30 @@ resource "aws_secretsmanager_secret_version" "akumar_secret_version" {
     password = random_password.akumar_password.result
   })
 }
+
+# --- User: RStudio ---
+
+# Generate a random alphanumeric password for RStudio
+resource "random_password" "rstudio_password" {
+  length           = 24
+  special          = false  # Only alphanumeric characters
+}
+
+# Create a Secrets Manager entry for RStudio's credentials
+resource "aws_secretsmanager_secret" "rstudio_secret" {
+  name        = "rstudio_credentials"
+  description = "RStudio Service Account Credentials"
+
+  lifecycle {
+    prevent_destroy = false
+  }
+}
+
+# Store RStudio's AD credentials in AWS Secrets Manager
+resource "aws_secretsmanager_secret_version" "rstudio_secret_version" {
+  secret_id = aws_secretsmanager_secret.rstudio_secret.id
+  secret_string = jsonencode({
+    username = "rstudio"
+    password = random_password.rstudio_password.result
+  })
+}

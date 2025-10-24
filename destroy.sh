@@ -28,6 +28,7 @@ for secret in \
     jsmith_ad_credentials \
     edavis_ad_credentials \
     rpatel_ad_credentials \
+    rstudio_credentials \
     admin_ad_credentials; do
 
     aws secretsmanager delete-secret \

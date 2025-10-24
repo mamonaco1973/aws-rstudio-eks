@@ -61,7 +61,7 @@ aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --usern
 }
 
 RSTUDIO_PASSWORD=$(aws secretsmanager get-secret-value \
-  --secret-id rstudio_ad_credentials \
+  --secret-id rstudio_credentials \
   --query 'SecretString' \
   --output text | jq -r '.password')
 
