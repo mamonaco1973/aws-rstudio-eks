@@ -116,7 +116,28 @@ resource "kubernetes_service_account" "cluster_autoscaler" {
   }
 }
 
-data "aws_eks_cluster_auth" "rstudio_eks" {
-  name = aws_eks_cluster.rstudio_eks.name
-}
+resource "kubernetes_config_map" "aws_auth" {
+  provider = kubernetes.eks
 
+  metadata {
+    name      = "aws-auth"
+    namespace = "kube-system"
+  }
+
+  data = {
+    mapRoles = yamlencode([
+      {
+        rolearn  = aws_iam_role.eks_node_group_role.arn
+        username = "system:node:{{EC2PrivateDNSName}}"
+        groups   = ["system:bootstrappers", "system:nodes"]
+      },
+      {
+        rolearn  = "arn:aws:iam::824622998597:user/mmonaco"
+        username = "terraform"
+        groups   = ["system:masters"]
+      }
+    ])
+  }
+
+  depends_on = [aws_eks_cluster.rstudio_eks]
+}
