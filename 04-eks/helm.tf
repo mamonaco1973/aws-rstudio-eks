@@ -60,32 +60,32 @@ resource "helm_release" "aws_load_balancer_controller" {
 # Works only with Auto Scaling Groups or Managed Node Groups in EKS.          #
 ################################################################################
 
-# resource "helm_release" "cluster_autoscaler" {
-#   name       = "cluster-autoscaler"
-#   # Helm release name shown in cluster metadata
+resource "helm_release" "cluster_autoscaler" {
+  name       = "cluster-autoscaler"
+  # Helm release name shown in cluster metadata
 
-#   repository = "https://kubernetes.github.io/autoscaler"
-#   # Official Kubernetes autoscaler chart repo
+  repository = "https://kubernetes.github.io/autoscaler"
+  # Official Kubernetes autoscaler chart repo
 
-#   chart      = "cluster-autoscaler"
-#   # Chart name to deploy
+  chart      = "cluster-autoscaler"
+  # Chart name to deploy
 
-#   namespace  = "kube-system"
-#   # Installed in kube-system for cluster-wide visibility and access
+  namespace  = "kube-system"
+  # Installed in kube-system for cluster-wide visibility and access
 
-#   version    = "9.29.1"
-#   # Explicit chart version to ensure reproducibility and avoid unplanned upgrades
+  version    = "9.29.1"
+  # Explicit chart version to ensure reproducibility and avoid unplanned upgrades
 
-#   values = [
-#     templatefile("${path.module}/yaml/autoscaler.yaml.tmpl", {
-#       cluster_name = aws_eks_cluster.rstudio_eks.name
-#       # Cluster name used in the configuration to target the correct node groups for scaling
-#     })
-#   ]
-#   # Injects custom values (like cluster name) from a template YAML file to configure the autoscaler chart
+  values = [
+    templatefile("${path.module}/yaml/autoscaler.yaml.tmpl", {
+      cluster_name = aws_eks_cluster.rstudio_eks.name
+      # Cluster name used in the configuration to target the correct node groups for scaling
+    })
+  ]
+  # Injects custom values (like cluster name) from a template YAML file to configure the autoscaler chart
 
-#    depends_on = [kubernetes_service_account.cluster_autoscaler]
-# }
+   depends_on = [kubernetes_service_account.cluster_autoscaler]
+}
 
 # ################################################################################
 # # Deploy NGINX Ingress Controller with Helm                                    #
