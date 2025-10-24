@@ -1,18 +1,22 @@
 ##############################################
-# Configure the Helm provider for Kubernetes #
+# Kubernetes Provider (Required by Helm)
+##############################################
+
+provider "kubernetes" {
+  host                   = aws_eks_cluster.rstudio_eks.endpoint
+  cluster_ca_certificate = base64decode(aws_eks_cluster.rstudio_eks.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.rstudio_eks.token
+}
+
+##############################################
+# Helm Provider referencing Kubernetes config
 ##############################################
 
 provider "helm" {
   kubernetes {
-    host = aws_eks_cluster.rstudio_eks.endpoint
-    # The public endpoint URL of the EKS cluster API server. Required for Helm to interact with the cluster.
-
+    host                   = aws_eks_cluster.rstudio_eks.endpoint
     cluster_ca_certificate = base64decode(aws_eks_cluster.rstudio_eks.certificate_authority[0].data)
-    # The EKS cluster CA is provided in base64; it must be decoded so Helm can securely communicate with the cluster.
-
-    token = data.aws_eks_cluster_auth.rstudio_eks.token
-    # An authentication token tied to the EKS cluster identity. Required for API access.
-    # Pulled from a separate data source that knows how to authenticate to the EKS cluster using your IAM identity.
+    token                  = data.aws_eks_cluster_auth.rstudio_eks.token
   }
 }
 
