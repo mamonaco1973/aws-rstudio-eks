@@ -100,6 +100,7 @@ resource "aws_iam_openid_connect_provider" "eks_oidc_provider" {
 # Kubernetes Provider Configuration
 # =============================================
 provider "kubernetes" {
+  alias                  = "eks"
   host                   = aws_eks_cluster.rstudio_eks.endpoint                                     # Use EKS cluster API endpoint
   cluster_ca_certificate = base64decode(aws_eks_cluster.rstudio_eks.certificate_authority[0].data)  # Decode CA certificate
   token                  = data.aws_eks_cluster_auth.rstudio_eks.token                              # Use token authentication for EKS API
