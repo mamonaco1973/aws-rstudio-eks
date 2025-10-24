@@ -80,14 +80,14 @@ resource "aws_eks_node_group" "rstudio_nodes" {
 # This ensures secure authentication for OIDC-based IAM roles
 
 data "tls_certificate" "eks_oidc" {
-  url = aws_eks_cluster.flask_eks.identity[0].oidc[0].issuer  # Fetch the OIDC provider URL from the EKS cluster
+  url = aws_eks_cluster.rstudio_eks.identity[0].oidc[0].issuer  # Fetch the OIDC provider URL from the EKS cluster
 }
 
 # Create an OIDC Identity Provider for EKS
 # This allows Kubernetes workloads to assume IAM roles using OpenID Connect
 
 resource "aws_iam_openid_connect_provider" "eks_oidc_provider" {
-  url = aws_eks_cluster.flask_eks.identity[0].oidc[0].issuer  # Set the OIDC provider URL for IAM authentication
+  url = aws_eks_cluster.rstudio_eks.identity[0].oidc[0].issuer  # Set the OIDC provider URL for IAM authentication
 
   client_id_list = [
     "sts.amazonaws.com"  # Allow the AWS Security Token Service (STS) to assume roles on behalf of Kubernetes workloads
@@ -100,9 +100,9 @@ resource "aws_iam_openid_connect_provider" "eks_oidc_provider" {
 # Kubernetes Provider Configuration
 # =============================================
 provider "kubernetes" {
-  host                   = aws_eks_cluster.flask_eks.endpoint                                     # Use EKS cluster API endpoint
-  cluster_ca_certificate = base64decode(aws_eks_cluster.flask_eks.certificate_authority[0].data)  # Decode CA certificate
-  token                  = data.aws_eks_cluster_auth.flask_eks.token                              # Use token authentication for EKS API
+  host                   = aws_eks_cluster.rstudio_eks.endpoint                                     # Use EKS cluster API endpoint
+  cluster_ca_certificate = base64decode(aws_eks_cluster.rstudio_eks.certificate_authority[0].data)  # Decode CA certificate
+  token                  = data.aws_eks_cluster_auth.rstudio_eks.token                              # Use token authentication for EKS API
 }
 
 resource "kubernetes_service_account" "cluster_autoscaler" {
