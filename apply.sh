@@ -101,6 +101,11 @@ terraform apply -auto-approve
 
 cd .. || exit
 
+aws eks update-kubeconfig --name rstudio-eks-cluster --region us-east-1 || {
+    echo "ERROR: Failed to update kubeconfig for EKS. Exiting."
+    exit 1
+}
+
 # ------------------------------------------------------------------------------------------------
 # Build Validation
 # ------------------------------------------------------------------------------------------------
