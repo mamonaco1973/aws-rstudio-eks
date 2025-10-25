@@ -14,6 +14,7 @@ cd 04-eks || { echo "ERROR: Directory 04-eks not found"; exit 1; }
 terraform init
 terraform destroy -auto-approve
 cd .. || exit
+exit 0
 
 # ------------------------------------------------------------------------------------------------
 # Destroy EC2 server instances
