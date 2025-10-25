@@ -89,6 +89,19 @@ cd .
 cd ../../.. || exit
 
 # ------------------------------------------------------------------------------------------------
+# Build Dependent EKS Cluster
+# ------------------------------------------------------------------------------------------------
+
+echo "NOTE: Building EKS cluster..."
+
+cd 04-eks || { echo "ERROR: Directory 04-eks not found"; exit 1; }
+
+terraform init
+terraform apply -auto-approve
+
+cd .. || exit
+
+# ------------------------------------------------------------------------------------------------
 # Build Validation
 # ------------------------------------------------------------------------------------------------
 # Run post-deployment checks (e.g., DNS, domain join, instance health).

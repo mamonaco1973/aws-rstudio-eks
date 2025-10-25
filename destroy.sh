@@ -6,6 +6,16 @@ export AWS_DEFAULT_REGION="us-east-1"   # AWS region for all deployed resources
 
 
 # ------------------------------------------------------------------------------------------------
+# Destroy EKS Cluster
+# ------------------------------------------------------------------------------------------------
+echo "NOTE: Destroying EKS cluster..."
+
+cd 04-eks || { echo "ERROR: Directory 04-eks not found"; exit 1; }
+terraform init
+terraform destroy -auto-approve
+cd .. || exit
+
+# ------------------------------------------------------------------------------------------------
 # Destroy EC2 server instances
 # ------------------------------------------------------------------------------------------------
 echo "NOTE: Destroying EC2 server instances..."
