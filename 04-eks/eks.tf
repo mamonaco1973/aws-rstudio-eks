@@ -1,73 +1,90 @@
-# Create an Amazon EKS Cluster
-# This resource provisions an EKS cluster with a specified IAM role and VPC configuration.
+# ==============================================================================
+# AWS EKS Cluster Configuration
+# ------------------------------------------------------------------------------
+# Provisions an Amazon EKS cluster, worker node group, OIDC provider, and
+# Kubernetes service account for autoscaling.
+# ==============================================================================
 
+# ------------------------------------------------------------------------------
+# Create an Amazon EKS Cluster
+# ------------------------------------------------------------------------------
+# Defines the EKS control plane with a specific IAM role and subnet placement.
+# ------------------------------------------------------------------------------
 resource "aws_eks_cluster" "rstudio_eks" {
-  name     = "rstudio-eks-cluster"                # Define the name of the EKS cluster
-  role_arn = aws_iam_role.eks_cluster_role.arn  # Attach the IAM role for EKS management
+  name     = "rstudio-eks-cluster"             # Name of the EKS cluster
+  role_arn = aws_iam_role.eks_cluster_role.arn # IAM role for EKS management
 
   vpc_config {
-    subnet_ids = [data.aws_subnet.k8s-subnet-1.id, 
-                  data.aws_subnet.k8s-subnet-2.id]  # Specify the subnets where the EKS cluster will be deployed
+    subnet_ids = [
+      data.aws_subnet.k8s-subnet-1.id,
+      data.aws_subnet.k8s-subnet-2.id
+    ] # Subnets for EKS control plane
   }
 
-  depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy]         # Ensure IAM policies are attached before creating the cluster
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_cluster_policy
+  ] # Ensure IAM policy before creation
 }
 
-# Define a Launch Template for EKS Worker Nodes
-# This template configures metadata options for security purposes
-
+# ------------------------------------------------------------------------------
+# Launch Template for EKS Worker Nodes
+# ------------------------------------------------------------------------------
+# Defines instance metadata options and tagging for worker nodes.
+# ------------------------------------------------------------------------------
 resource "aws_launch_template" "eks_worker_nodes" {
-  name = "eks-worker-nodes"    # Assign a name to the launch template
+  name = "eks-worker-nodes" # Name of the launch template
 
   metadata_options {
-    http_endpoint = "enabled"  # Enable the instance metadata service (IMDS)
-    http_tokens   = "optional" # Allow IMDSv2 but do not enforce it 
-  }  
+    http_endpoint = "enabled"  # Enable IMDS access
+    http_tokens   = "optional" # Allow IMDSv2 but not enforced
+  }
 
-  # Define tags for instances launched from this template
   tag_specifications {
     resource_type = "instance"
-
     tags = {
-      Name = "eks-worker-node-flask-api"
+      Name = "eks-worker-node-rstudio"
     }
   }
 }
 
-# Create an EKS Node Group
-# This provisions worker nodes in the EKS cluster and assigns the necessary IAM role
-
+# ------------------------------------------------------------------------------
+# EKS Node Group
+# ------------------------------------------------------------------------------
+# Provisions worker nodes for the EKS cluster using the launch template and
+# IAM role configuration.
+# ------------------------------------------------------------------------------
 resource "aws_eks_node_group" "rstudio_nodes" {
-  cluster_name    = aws_eks_cluster.rstudio_eks.name                           # Associate the node group with the specified EKS cluster
-  node_group_name = "rstudio-nodes"                                            # Define the name of the node group
-  node_role_arn   = aws_iam_role.eks_node_role.arn                           # Attach the IAM role for worker nodes
-  subnet_ids      = [data.aws_subnet.k8s-private-subnet-1.id,
-                     data.aws_subnet.k8s-private-subnet-2.id]                # Deploy worker nodes in specified subnets
+  cluster_name    = aws_eks_cluster.rstudio_eks.name # Link to cluster
+  node_group_name = "rstudio-nodes"                  # Node group name
+  node_role_arn   = aws_iam_role.eks_node_role.arn   # IAM role for nodes
+  subnet_ids = [
+    data.aws_subnet.k8s-private-subnet-1.id,
+    data.aws_subnet.k8s-private-subnet-2.id
+  ] # Deploy in private subnets
 
-  instance_types  = ["t3.medium"]                                            # Choose the instance type for worker nodes
+  instance_types = ["t3.medium"] # Instance type for worker nodes
 
-  # Use the previously defined launch template for worker node configuration
   launch_template {
-    id      = aws_launch_template.eks_worker_nodes.id              # Reference the launch template ID
-    version = aws_launch_template.eks_worker_nodes.latest_version  # Always use the latest launch template version
+    id      = aws_launch_template.eks_worker_nodes.id
+    version = aws_launch_template.eks_worker_nodes.latest_version
   }
 
   scaling_config {
-    desired_size = 1  # Set the desired number of worker nodes (scale accordingly)
-    max_size     = 4  # Maximum number of worker nodes allowed (increase for scaling needs)
-    min_size     = 1  # Minimum number of worker nodes (ensure redundancy if needed)
+    desired_size = 1 # Desired number of worker nodes
+    max_size     = 4 # Maximum scaling size
+    min_size     = 1 # Minimum number of nodes
   }
 
   depends_on = [
-    aws_iam_role_policy_attachment.eks_worker_node_policy,  # Ensure the node IAM role has required permissions
-    aws_iam_role_policy_attachment.eks_cni_policy,          # Attach policy for EKS networking (CNI)
-    aws_iam_role_policy_attachment.eks_registry_policy,     # Allow worker nodes to pull images from ECR
-    aws_iam_role_policy_attachment.ssm_policy               # Enable access to AWS Systems Manager for logging and monitoring
-  ]
+    aws_iam_role_policy_attachment.eks_worker_node_policy,
+    aws_iam_role_policy_attachment.eks_cni_policy,
+    aws_iam_role_policy_attachment.eks_registry_policy,
+    aws_iam_role_policy_attachment.ssm_policy
+  ] # Ensure IAM policies exist
 
   tags = {
-    "k8s.io/cluster-autoscaler/enabled"                    = "true"
-    "k8s.io/cluster-autoscaler/flask-eks-cluster"          = "owned"
+    "k8s.io/cluster-autoscaler/enabled"     = "true"
+    "k8s.io/cluster-autoscaler/rstudio-eks" = "owned"
   }
 
   labels = {
@@ -75,37 +92,51 @@ resource "aws_eks_node_group" "rstudio_nodes" {
   }
 }
 
-
-# Retrieve the TLS Certificate for EKS OIDC Provider
-# This ensures secure authentication for OIDC-based IAM roles
-
+# ------------------------------------------------------------------------------
+# Retrieve TLS Certificate for EKS OIDC Provider
+# ------------------------------------------------------------------------------
+# Fetches the OIDC provider’s certificate for secure role assumption.
+# ------------------------------------------------------------------------------
 data "tls_certificate" "eks_oidc" {
-  url = aws_eks_cluster.rstudio_eks.identity[0].oidc[0].issuer  # Fetch the OIDC provider URL from the EKS cluster
+  url = aws_eks_cluster.rstudio_eks.identity[0].oidc[0].issuer
 }
 
+# ------------------------------------------------------------------------------
 # Create an OIDC Identity Provider for EKS
-# This allows Kubernetes workloads to assume IAM roles using OpenID Connect
-
+# ------------------------------------------------------------------------------
+# Enables Kubernetes service accounts to assume IAM roles via OIDC.
+# ------------------------------------------------------------------------------
 resource "aws_iam_openid_connect_provider" "eks_oidc_provider" {
-  url = aws_eks_cluster.rstudio_eks.identity[0].oidc[0].issuer  # Set the OIDC provider URL for IAM authentication
+  url = aws_eks_cluster.rstudio_eks.identity[0].oidc[0].issuer
 
   client_id_list = [
-    "sts.amazonaws.com"  # Allow the AWS Security Token Service (STS) to assume roles on behalf of Kubernetes workloads
+    "sts.amazonaws.com"
+  ] # Allow STS to assume IAM roles
+
+  thumbprint_list = [
+    data.tls_certificate.eks_oidc.certificates[0].sha1_fingerprint
   ]
-
-  thumbprint_list = [data.tls_certificate.eks_oidc.certificates[0].sha1_fingerprint]  # Use the retrieved TLS certificate fingerprint for secure communication
 }
 
-# =============================================
+# ------------------------------------------------------------------------------
 # Kubernetes Provider Configuration
-# =============================================
+# ------------------------------------------------------------------------------
+# Configures the Kubernetes provider to connect to the EKS API server.
+# ------------------------------------------------------------------------------
 provider "kubernetes" {
-  alias                  = "eks"
-  host                   = aws_eks_cluster.rstudio_eks.endpoint                                     # Use EKS cluster API endpoint
-  cluster_ca_certificate = base64decode(aws_eks_cluster.rstudio_eks.certificate_authority[0].data)  # Decode CA certificate
-  token                  = data.aws_eks_cluster_auth.rstudio_eks.token                              # Use token authentication for EKS API
+  alias = "eks"
+  host  = aws_eks_cluster.rstudio_eks.endpoint
+  cluster_ca_certificate = base64decode(
+    aws_eks_cluster.rstudio_eks.certificate_authority[0].data
+  )
+  token = data.aws_eks_cluster_auth.rstudio_eks.token
 }
 
+# ------------------------------------------------------------------------------
+# Kubernetes Service Account for Cluster Autoscaler
+# ------------------------------------------------------------------------------
+# Creates a service account bound to an IAM role for scaling operations.
+# ------------------------------------------------------------------------------
 resource "kubernetes_service_account" "cluster_autoscaler" {
   provider = kubernetes.eks
 
@@ -119,4 +150,3 @@ resource "kubernetes_service_account" "cluster_autoscaler" {
 
   depends_on = [aws_eks_cluster.rstudio_eks]
 }
-

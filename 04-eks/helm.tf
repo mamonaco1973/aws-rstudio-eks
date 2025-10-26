@@ -1,117 +1,91 @@
-
-##############################################
-# Helm Provider referencing Kubernetes config
-##############################################
-
+# ==============================================================================
+# Helm Provider referencing Kubernetes configuration
+# ------------------------------------------------------------------------------
+# Configures the Helm provider to interact with the EKS cluster using data
+# from the Kubernetes API endpoint, CA certificate, and authentication token.
+# ==============================================================================
 provider "helm" {
   kubernetes = {
-    host                   = aws_eks_cluster.rstudio_eks.endpoint
-    cluster_ca_certificate = base64decode(aws_eks_cluster.rstudio_eks.certificate_authority[0].data)
-    token                  = data.aws_eks_cluster_auth.rstudio_eks.token
+    host = aws_eks_cluster.rstudio_eks.endpoint
+    cluster_ca_certificate = base64decode(
+      aws_eks_cluster.rstudio_eks.certificate_authority[0].data
+    )
+    token = data.aws_eks_cluster_auth.rstudio_eks.token
   }
 }
 
-##############################################################
-# Retrieve authentication token from AWS for EKS interaction #
-##############################################################
-
+# ==============================================================================
+# AWS EKS Cluster Authentication
+# ------------------------------------------------------------------------------
+# Retrieves a temporary authentication token from AWS to allow Terraform to
+# interact securely with the EKS cluster using IAM permissions.
+# ==============================================================================
 data "aws_eks_cluster_auth" "rstudio_eks" {
   name = aws_eks_cluster.rstudio_eks.name
-  # This data block retrieves temporary credentials (token) to access the EKS cluster securely.
-  # It relies on your AWS IAM permissions and the specified EKS cluster name.
 }
 
-#############################################################################
-# Deploy the AWS Load Balancer Controller (ALB/NLB integration for EKS)     #
-# This Helm chart installs the controller used to create AWS ALBs/NLBs     #
-# based on Kubernetes ingress and service resources.                        #
-#############################################################################
-
+# ==============================================================================
+# AWS Load Balancer Controller (Helm)
+# ------------------------------------------------------------------------------
+# Deploys the AWS Load Balancer Controller Helm chart, which manages ALB/NLB
+# resources based on Kubernetes Ingress and Service definitions.
+# ==============================================================================
 resource "helm_release" "aws_load_balancer_controller" {
-  name       = "aws-load-balancer-controller"
-  # Unique Helm release name that will appear in the cluster
-
-  repository = "https://aws.github.io/eks-charts"
-  # Official AWS-maintained Helm chart repo for EKS-specific tools
-
-  chart      = "aws-load-balancer-controller"
-  # Chart name inside the repo – installs the AWS LB Controller
-
-  namespace  = "kube-system"
-  # Installed into kube-system namespace – standard for core components
+  name       = "aws-load-balancer-controller"     # Helm release name
+  repository = "https://aws.github.io/eks-charts" # Official AWS chart repo
+  chart      = "aws-load-balancer-controller"     # Chart to deploy
+  namespace  = "kube-system"                      # Standard namespace for controllers
 
   values = [
     templatefile("${path.module}/yaml/aws-load-balancer.yaml.tmpl", {
-      cluster_name = aws_eks_cluster.rstudio_eks.name
-      # The EKS cluster name passed as a template variable – used in the Helm chart's config
-
+      cluster_name = aws_eks_cluster.rstudio_eks.name # Pass cluster name
       role_arn     = module.load_balancer_controller_irsa.iam_role_arn
-      # IAM Role ARN used for the service account – enables IRSA (IAM Roles for Service Accounts)
-      # This gives the controller the permissions it needs to create/manage AWS load balancers
     })
   ]
-  # The `values` block pulls in customized configuration for the Helm chart
-  # using a Terraform template file and injects dynamic values into it
+
+  # Custom values template injects cluster name and IAM role into Helm config
 }
 
-################################################################################
-# Deploy Cluster Autoscaler with Helm                                          #
-# This monitors node usage and adjusts node count based on pending workloads. #
-# Works only with Auto Scaling Groups or Managed Node Groups in EKS.          #
-################################################################################
-
+# ==============================================================================
+# Cluster Autoscaler (Helm)
+# ------------------------------------------------------------------------------
+# Deploys the Kubernetes Cluster Autoscaler Helm chart to monitor resource
+# usage and automatically scale node groups in the EKS cluster.
+# ==============================================================================
 resource "helm_release" "cluster_autoscaler" {
-  name       = "cluster-autoscaler"
-  # Helm release name shown in cluster metadata
-
-  repository = "https://kubernetes.github.io/autoscaler"
-  # Official Kubernetes autoscaler chart repo
-
-  chart      = "cluster-autoscaler"
-  # Chart name to deploy
-
-  namespace  = "kube-system"
-  # Installed in kube-system for cluster-wide visibility and access
-
-  version    = "9.29.1"
-  # Explicit chart version to ensure reproducibility and avoid unplanned upgrades
+  name       = "cluster-autoscaler"                      # Helm release name
+  repository = "https://kubernetes.github.io/autoscaler" # Chart repo
+  chart      = "cluster-autoscaler"                      # Chart name
+  namespace  = "kube-system"                             # Deploy to kube-system namespace
+  version    = "9.29.1"                                  # Specific version for reproducibility
 
   values = [
     templatefile("${path.module}/yaml/autoscaler.yaml.tmpl", {
       cluster_name = aws_eks_cluster.rstudio_eks.name
-      # Cluster name used in the configuration to target the correct node groups for scaling
     })
   ]
-  # Injects custom values (like cluster name) from a template YAML file to configure the autoscaler chart
 
-   depends_on = [kubernetes_service_account.cluster_autoscaler]
+  depends_on = [
+    kubernetes_service_account.cluster_autoscaler
+  ]
 }
 
-################################################################################
-# Deploy NGINX Ingress Controller with Helm                                    #
-# Provides an HTTP(S) load balancer and reverse proxy for Kubernetes services.#
-# Required for routing external traffic to in-cluster services using Ingress. #
-################################################################################
-
+# ==============================================================================
+# NGINX Ingress Controller (Helm)
+# ------------------------------------------------------------------------------
+# Deploys the NGINX Ingress Controller to manage HTTP/HTTPS routing for
+# Kubernetes services exposed externally.
+# ==============================================================================
 resource "helm_release" "nginx_ingress" {
-
   depends_on = [helm_release.aws_load_balancer_controller]
 
-  name       = "nginx-ingress"
-  # Helm release name shown in cluster metadata
+  name             = "nginx-ingress"                              # Helm release name
+  namespace        = "ingress-nginx"                              # Isolated namespace for ingress
+  repository       = "https://kubernetes.github.io/ingress-nginx" # Chart repo
+  chart            = "ingress-nginx"                              # Chart name
+  create_namespace = true                                         # Create namespace if missing
 
-  namespace  = "ingress-nginx"
-  # Deployed into its own namespace to isolate ingress controller resources
-
-  repository = "https://kubernetes.github.io/ingress-nginx"
-  # Official ingress-nginx Helm chart repository
-
-  chart      = "ingress-nginx"
-  # Chart name for deploying the ingress controller
-
-  create_namespace = true
-  # Automatically creates the 'ingress-nginx' namespace if it doesn't exist
-
-  values = [file("${path.module}/yaml/nginx-values.yaml")]
-  # Load custom Helm chart values from external YAML file for better readability
+  values = [
+    file("${path.module}/yaml/nginx-values.yaml")
+  ]
 }

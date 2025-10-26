@@ -192,8 +192,8 @@ resource "aws_secretsmanager_secret_version" "akumar_secret_version" {
 # or local fallback login to RStudio Server.
 # ===================================================================
 resource "random_password" "rstudio_password" {
-  length           = 24
-  special          = false
+  length  = 24
+  special = false
 }
 
 # ===================================================================
