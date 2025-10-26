@@ -5,3 +5,5 @@
 *.terraform.*
 *.pem
 *.pub
+rstudio-*.yaml
+
