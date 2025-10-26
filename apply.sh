@@ -141,7 +141,7 @@ cd .. || exit
 # -----------------------------------------------------------------------------
 
 # Update kubeconfig to connect kubectl to the EKS cluster
-aws eks update-kubeconfig --name rstudio-eks-cluster \
+aws eks update-kubeconfig --name rstudio-cluster \
   --region ${AWS_DEFAULT_REGION} || {
   echo "ERROR: kubeconfig update failed. Exiting."
   exit 1

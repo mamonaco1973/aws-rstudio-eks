@@ -11,7 +11,7 @@
 # Defines the EKS control plane with a specific IAM role and subnet placement.
 # ------------------------------------------------------------------------------
 resource "aws_eks_cluster" "rstudio_eks" {
-  name     = "rstudio-eks-cluster"             # Name of the EKS cluster
+  name     = "rstudio-cluster"             # Name of the EKS cluster
   role_arn = aws_iam_role.eks_cluster_role.arn # IAM role for EKS management
 
   vpc_config {
