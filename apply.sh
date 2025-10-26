@@ -127,7 +127,7 @@ terraform apply -auto-approve
 # Prepare Kubernetes YAML Manifests
 
 # Replace placeholder in rstudio-deployment.yaml template with real image tag
-sed "s/\${rstudio_image}/$IMAGE_TAG/g" yaml/rstudio-deployment.yaml.tmpl > ../rstudio-deployment.yaml || {
+sed "s|\${rstudio_image}|$IMAGE_TAG|g" yaml/rstudio-deployment.yaml.tmpl > ../rstudio-deployment.yaml || {
     echo "ERROR: Failed to generate Kubernetes deployment file. Exiting."
     exit 1
 }
