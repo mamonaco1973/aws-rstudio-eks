@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: rstudio
-        image: 824622998597.dkr.ecr.us-east-1.amazonaws.com/rstudio:rstudio-server-rc1
+        image: ${rstudio_image}
         ports:
         - containerPort: 8787

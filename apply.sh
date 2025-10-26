@@ -124,7 +124,21 @@ cd 04-eks || { echo "ERROR: 04-eks directory missing."; exit 1; }
 terraform init
 terraform apply -auto-approve
 
+# Prepare Kubernetes YAML Manifests
+
+# Replace placeholder in rstudio-deployment.yaml template with real image tag
+sed "s/\${IMAGE_TAG}/$rstudio_image/g" yaml/rstudio-deployment.yaml.tmpl > ../rstudio-deployment.yaml || {
+    echo "ERROR: Failed to generate Kubernetes deployment file. Exiting."
+    exit 1
+}
+cp yaml/rstudio-service.yaml.tmpl  ../rstudio-service.yaml
+cp yaml/rstudio-ingress.yaml.tmpl  ../rstudio-ingress.yaml
+
 cd .. || exit
+
+# ------------------------------------------------------------------------------
+# Phase 5: Update kubeconfig and deploy rstudio yaml
+# -----------------------------------------------------------------------------
 
 # Update kubeconfig to connect kubectl to the EKS cluster
 aws eks update-kubeconfig --name rstudio-eks-cluster \
@@ -133,8 +147,23 @@ aws eks update-kubeconfig --name rstudio-eks-cluster \
   exit 1
 }
 
+kubectl apply -f rstudio-deployment.yaml || {
+  echo "ERROR: Failed to apply rstudio-deployment.yaml. Exiting."
+  exit 1
+}
+
+kubectl apply -f rstudio-service.yaml || {
+  echo "ERROR: Failed to apply rstudio-service.yaml. Exiting."
+  exit 1
+}
+
+kubectl apply -f rstudio-ingress.yaml || {
+  echo "ERROR: Failed to apply rstudio-ingress.yaml. Exiting."
+  exit 1
+}
+
 # ------------------------------------------------------------------------------
-# Phase 5: Build Validation
+# Phase 6: Build Validation
 # ------------------------------------------------------------------------------
 # Runs post-deployment checks for DNS, domain join, and instance health.
 echo "NOTE: Running build validation..."
