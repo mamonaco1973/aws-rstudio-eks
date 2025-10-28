@@ -70,22 +70,22 @@ resource "helm_release" "cluster_autoscaler" {
   ]
 }
 
-# # ==============================================================================
-# # NGINX Ingress Controller (Helm)
-# # ------------------------------------------------------------------------------
-# # Deploys the NGINX Ingress Controller to manage HTTP/HTTPS routing for
-# # Kubernetes services exposed externally.
-# # ==============================================================================
-# resource "helm_release" "nginx_ingress" {
-#   depends_on = [helm_release.aws_load_balancer_controller]
+# ==============================================================================
+# NGINX Ingress Controller (Helm)
+# ------------------------------------------------------------------------------
+# Deploys the NGINX Ingress Controller to manage HTTP/HTTPS routing for
+# Kubernetes services exposed externally.
+# ==============================================================================
+resource "helm_release" "nginx_ingress" {
+  depends_on = [helm_release.aws_load_balancer_controller]
 
-#   name             = "nginx-ingress"                              # Helm release name
-#   namespace        = "ingress-nginx"                              # Isolated namespace for ingress
-#   repository       = "https://kubernetes.github.io/ingress-nginx" # Chart repo
-#   chart            = "ingress-nginx"                              # Chart name
-#   create_namespace = true                                         # Create namespace if missing
+  name             = "nginx-ingress"                              # Helm release name
+  namespace        = "ingress-nginx"                              # Isolated namespace for ingress
+  repository       = "https://kubernetes.github.io/ingress-nginx" # Chart repo
+  chart            = "ingress-nginx"                              # Chart name
+  create_namespace = true                                         # Create namespace if missing
 
-#   values = [
-#     file("${path.module}/yaml/nginx-values.yaml")
-#   ]
-# }
+  values = [
+    file("${path.module}/yaml/nginx-values.yaml")
+  ]
+}
