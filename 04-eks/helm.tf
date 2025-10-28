@@ -140,19 +140,35 @@ data "aws_efs_file_system" "efs" {
 }
 
 
+# StorageClass for dynamic EFS access points
 resource "kubernetes_storage_class" "efs_sc" {
   metadata {
     name = "efs-sc"
+
+    # Make it the default SC:
+     annotations = {
+       "storageclass.kubernetes.io/is-default-class" = "true"
+    }
   }
 
-  provisioner          = "efs.csi.aws.com"
-  reclaim_policy       = "Retain"
-  volume_binding_mode  = "Immediate"
+  storage_provisioner = "efs.csi.aws.com"
+
+  # Optional but recommended for EFS
+  mount_options = ["tls"]
+
+  reclaim_policy      = "Retain"           # or "Delete" if you want APs cleaned up
+  volume_binding_mode = "Immediate"        # EFS is network storage; immediate is fine
+  allow_volume_expansion = true
 
   parameters = {
-    # Use the EFS filesystem you just looked up
     provisioningMode = "efs-ap"
     fileSystemId     = data.aws_efs_file_system.efs.id
     directoryPerms   = "700"
+    # basePath      = "/k8s"               # optional: create APs under this path
+    # gidRangeStart = "1000"               # optional: see EFS CSI docs
+    # gidRangeEnd   = "2000"
   }
+
+  # If you installed the EFS CSI Driver via Helm in this run, add an explicit dependency:
+  depends_on = [helm_release.aws_efs_csi_driver]
 }
