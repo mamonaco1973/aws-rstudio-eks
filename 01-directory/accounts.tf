@@ -242,5 +242,6 @@ resource "aws_secretsmanager_secret_version" "postgres_credentials_version" {
     user     = "postgres"                             # Static username for the Packer user
     password = random_password.postgres_password.result # Dynamic, securely generated password
     endpoint = split(":", aws_db_instance.postgres_rds.endpoint)[0]
+    uri      = "postgresql://postgres:${random_password.postgres_password.result}@${split(":", aws_db_instance.postgres_rds.endpoint)[0]}:5432/postgres"
   })
-
+}
