@@ -137,6 +137,9 @@ data "aws_efs_file_system" "efs" {
 
 # StorageClass for dynamic EFS access points
 resource "kubernetes_storage_class" "efs_sc" {
+
+  provider = kubernetes.eks
+
   metadata {
     name = "efs-sc"
 
