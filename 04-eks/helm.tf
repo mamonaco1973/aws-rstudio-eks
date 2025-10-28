@@ -96,23 +96,18 @@ resource "helm_release" "cluster_autoscaler" {
 # Enables persistent storage provisioning using Amazon EFS.
 # Installs the official AWS EFS CSI driver chart into kube-system.
 # ==============================================================================
+
 resource "helm_release" "aws_efs_csi_driver" {
-  name             = "aws-efs-csi-driver"
-  namespace        = "kube-system"
-  repository       = "https://kubernetes-sigs.github.io/aws-efs-csi-driver/"
-  chart            = "aws-efs-csi-driver"
-  create_namespace = false
+  name       = "aws-efs-csi-driver"
+  repository = "https://kubernetes-sigs.github.io/aws-efs-csi-driver/"
+  chart      = "aws-efs-csi-driver"
 
-  # Optionally pin a version for reproducibility
-  # Check the latest chart version: https://artifacthub.io/packages/helm/aws-efs-csi-driver/aws-efs-csi-driver
-  version          = "2.6.2"
+  # You can omit version to always get latest, or pin a known-good one
+  # version = "2.5.0"   # example known-good version
+  namespace = "kube-system"
 
-  # Values for configuration
   values = [
     yamlencode({
-      image = {
-        repository = "602401143452.dkr.ecr.us-east-1.amazonaws.com/eks/aws-efs-csi-driver"
-      }
       controller = {
         serviceAccount = {
           create = true
