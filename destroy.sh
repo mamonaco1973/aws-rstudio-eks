@@ -30,6 +30,7 @@ kubectl delete -f rstudio-deployment.yaml
 kubectl delete -f rstudio-service.yaml
 kubectl delete -f rstudio-ingress.yaml
 
+
 cd 04-eks || { echo "ERROR: Directory 04-eks not found."; exit 1; }
 terraform init
 echo "NOTE: Deleting nginx_ingress..."

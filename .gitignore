@@ -6,4 +6,4 @@
 *.pem
 *.pub
 rstudio-*.yaml
-
+values.secret.yaml

@@ -76,16 +76,83 @@ resource "helm_release" "cluster_autoscaler" {
 # Deploys the NGINX Ingress Controller to manage HTTP/HTTPS routing for
 # Kubernetes services exposed externally.
 # ==============================================================================
-resource "helm_release" "nginx_ingress" {
-  depends_on = [helm_release.aws_load_balancer_controller]
+# resource "helm_release" "nginx_ingress" {
+#   depends_on = [helm_release.aws_load_balancer_controller]
 
-  name             = "nginx-ingress"                              # Helm release name
-  namespace        = "ingress-nginx"                              # Isolated namespace for ingress
-  repository       = "https://kubernetes.github.io/ingress-nginx" # Chart repo
-  chart            = "ingress-nginx"                              # Chart name
-  create_namespace = true                                         # Create namespace if missing
+#   name             = "nginx-ingress"                              # Helm release name
+#   namespace        = "ingress-nginx"                              # Isolated namespace for ingress
+#   repository       = "https://kubernetes.github.io/ingress-nginx" # Chart repo
+#   chart            = "ingress-nginx"                              # Chart name
+#   create_namespace = true                                         # Create namespace if missing
 
+#   values = [
+#     file("${path.module}/yaml/nginx-values.yaml")
+#   ]
+# }
+
+# ==============================================================================
+# AWS EFS CSI Driver (Helm)
+# ------------------------------------------------------------------------------
+# Enables persistent storage provisioning using Amazon EFS.
+# Installs the official AWS EFS CSI driver chart into kube-system.
+# ==============================================================================
+resource "helm_release" "aws_efs_csi_driver" {
+  name             = "aws-efs-csi-driver"
+  namespace        = "kube-system"
+  repository       = "https://kubernetes-sigs.github.io/aws-efs-csi-driver/"
+  chart            = "aws-efs-csi-driver"
+  create_namespace = false
+
+  # Optionally pin a version for reproducibility
+  # Check the latest chart version: https://artifacthub.io/packages/helm/aws-efs-csi-driver/aws-efs-csi-driver
+  version          = "2.6.2"
+
+  # Values for configuration
   values = [
-    file("${path.module}/yaml/nginx-values.yaml")
+    yamlencode({
+      image = {
+        repository = "602401143452.dkr.ecr.us-east-1.amazonaws.com/eks/aws-efs-csi-driver"
+      }
+      controller = {
+        serviceAccount = {
+          create = true
+          name   = "efs-csi-controller-sa"
+        }
+      }
+    })
   ]
+
+  depends_on = [
+    aws_eks_cluster.rstudio_eks
+  ]
+}
+
+# ==============================================================================
+# DATA SOURCE: Existing EFS File System (lookup by tag)
+# ------------------------------------------------------------------------------
+# Retrieves the EFS file system ID for "mcloud-efs" so it can be
+# referenced by the EFS CSI driver, StorageClass, etc.
+# ==============================================================================
+data "aws_efs_file_system" "efs" {
+  tags = {
+    Name = "mcloud-efs"
+  }
+}
+
+
+resource "kubernetes_storage_class" "efs_sc" {
+  metadata {
+    name = "efs-sc"
+  }
+
+  provisioner          = "efs.csi.aws.com"
+  reclaim_policy       = "Retain"
+  volume_binding_mode  = "Immediate"
+
+  parameters = {
+    # Use the EFS filesystem you just looked up
+    provisioningMode = "efs-ap"
+    fileSystemId     = data.aws_efs_file_system.efs.id
+    directoryPerms   = "700"
+  }
 }

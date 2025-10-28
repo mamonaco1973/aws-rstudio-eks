@@ -1,9 +1,7 @@
-# yaml/nginx-values.yaml
+# nginx-values.yaml
 controller:
   service:
-    # keep the Service, but make it internal to the cluster
-    enabled: true
-    type: ClusterIP
-    annotations: {}           # REMOVE old NLB annotations
-  publishService:
-    enabled: false            # don't publish LB status
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+      service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: preserve_client_ip.enabled=true
+      service.beta.kubernetes.io/aws-load-balancer-name: nginx-ingress-lb
