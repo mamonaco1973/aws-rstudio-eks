@@ -98,18 +98,18 @@ fi
 # Define full image tag and build Docker image
 IMAGE_TAG="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/rstudio:rstudio-server-rc1"
 
-#docker build \
-# --build-arg RSTUDIO_PASSWORD="${RSTUDIO_PASSWORD}" \
-# -t "${IMAGE_TAG}" . || {
-# echo "ERROR: Docker build failed. Exiting."
-#  exit 1
-#}
+docker build \
+ --build-arg RSTUDIO_PASSWORD="${RSTUDIO_PASSWORD}" \
+ -t "${IMAGE_TAG}" . || {
+ echo "ERROR: Docker build failed. Exiting."
+  exit 1
+}
 
 # Push Docker image to ECR
-#docker push "${IMAGE_TAG}" || {
-#  echo "ERROR: Docker push failed. Exiting."
-#  exit 1
-#}
+docker push "${IMAGE_TAG}" || {
+  echo "ERROR: Docker push failed. Exiting."
+  exit 1
+}
 
 cd ../.. || exit
 
@@ -131,8 +131,6 @@ sed "s|\${rstudio_image}|$IMAGE_TAG|g" yaml/rstudio-app.yaml.tmpl > ../rstudio-a
     echo "ERROR: Failed to generate Kubernetes deployment file. Exiting."
     exit 1
 }
-#cp yaml/rstudio-service.yaml.tmpl  ../rstudio-service.yaml
-#cp yaml/rstudio-ingress.yaml.tmpl  ../rstudio-ingress.yaml
 
 cd .. || exit
 
@@ -147,20 +145,11 @@ aws eks update-kubeconfig --name rstudio-cluster \
   exit 1
 }
 
-kubectl apply -f rstudio-deployment.yaml || {
-  echo "ERROR: Failed to apply rstudio-deployment.yaml. Exiting."
+kubectl apply -f rstudio-app.yaml || {
+  echo "ERROR: Failed to apply rstudio-app.yaml. Exiting."
   exit 1
 }
 
-kubectl apply -f rstudio-service.yaml || {
-  echo "ERROR: Failed to apply rstudio-service.yaml. Exiting."
-  exit 1
-}
-
-kubectl apply -f rstudio-ingress.yaml || {
-  echo "ERROR: Failed to apply rstudio-ingress.yaml. Exiting."
-  exit 1
-}
 
 # ------------------------------------------------------------------------------
 # Phase 6: Build Validation

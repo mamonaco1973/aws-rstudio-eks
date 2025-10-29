@@ -26,10 +26,7 @@ set -euo pipefail                      # Exit on error, unset var, or pipe fail
 # ------------------------------------------------------------------------------
 echo "NOTE: Destroying EKS cluster..."
 
-kubectl delete -f rstudio-deployment.yaml
-kubectl delete -f rstudio-service.yaml
-kubectl delete -f rstudio-ingress.yaml
-
+kubectl delete -f rstudio-app.yaml
 
 cd 04-eks || { echo "ERROR: Directory 04-eks not found."; exit 1; }
 terraform init
