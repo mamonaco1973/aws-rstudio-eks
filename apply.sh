@@ -88,7 +88,7 @@ docker login --username AWS --password-stdin \
 RSTUDIO_PASSWORD=$(aws secretsmanager get-secret-value \
   --secret-id rstudio_credentials \
   --query 'SecretString' \
-  --output text | jq -r '.password')
+  --output text | jq -r '.password') 
 
 if [ -z "$RSTUDIO_PASSWORD" ] || [ "$RSTUDIO_PASSWORD" = "null" ]; then
   echo "ERROR: Failed to retrieve RStudio password. Exiting."
