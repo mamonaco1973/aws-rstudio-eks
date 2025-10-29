@@ -88,7 +88,6 @@ resource "kubernetes_service_account" "efs_csi_controller_sa" {
 # Helm Release: AWS EFS CSI Driver
 # ------------------------------------------------------------------------------
 resource "helm_release" "aws_efs_csi_driver" {
-  provider  = helm.eks
   name      = "aws-efs-csi-driver"
   repository = "https://kubernetes-sigs.github.io/aws-efs-csi-driver/"
   chart      = "aws-efs-csi-driver"
