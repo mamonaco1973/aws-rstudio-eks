@@ -35,6 +35,9 @@ spec:
       labels:
         app: rstudio-server
     spec:
+      # Associate the IRSA-enabled Service Account
+      serviceAccountName: secrets-reader-sa
+
       containers:
       - name: rstudio
         image: ${rstudio_image}

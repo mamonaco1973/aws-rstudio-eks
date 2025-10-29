@@ -191,12 +191,11 @@ resource "aws_iam_role" "eks_secrets_reader" {
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringEquals = {
-            # Replace namespace:serviceaccount below with your actual SA
             "${replace(
               aws_iam_openid_connect_provider.eks_oidc_provider.url,
               "https://",
               ""
-            )}:sub" = "system:serviceaccount:default:default"
+            )}:sub" = "system:serviceaccount:default:secrets-reader-sa"
           }
         }
       }
