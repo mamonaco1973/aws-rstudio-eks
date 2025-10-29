@@ -1,0 +1,92 @@
+# ==============================================================================
+# RStudio App - Combined Kubernetes Manifest
+# ------------------------------------------------------------------------------
+# Includes PersistentVolumeClaim, Deployment, Service, and Ingress for RStudio.
+# Replace ${rstudio_image} before applying.
+# ==============================================================================
+
+# --- PersistentVolumeClaim (EFS) ---------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-claim
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-sc
+  resources:
+    requests:
+      storage: 1Gi
+---
+# --- Deployment ---------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rstudio-server
+  labels:
+    app: rstudio-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rstudio-server
+  template:
+    metadata:
+      labels:
+        app: rstudio-server
+    spec:
+      containers:
+      - name: rstudio
+        image: ${rstudio_image}
+        ports:
+        - containerPort: 8787
+
+        # Mount EFS PVC at /efs for validation
+        volumeMounts:
+        - name: efs-storage
+          mountPath: /efs
+
+      volumes:
+      - name: efs-storage
+        persistentVolumeClaim:
+          claimName: efs-claim
+---
+# --- Service ------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: rstudio-service
+  labels:
+    app: rstudio-server
+spec:
+  type: ClusterIP
+  selector:
+    app: rstudio-server
+  ports:
+  - port: 8787
+    targetPort: 8787
+---
+# --- Ingress ------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rstudio-ingress
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /auth-sign-in
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=3600
+    alb.ingress.kubernetes.io/target-group-attributes: stickiness.enabled=true,stickiness.type=lb_cookie,stickiness.lb_cookie.duration_seconds=3600
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: rstudio-service
+              port:
+                number: 8787

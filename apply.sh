@@ -127,12 +127,12 @@ terraform apply -auto-approve
 # Prepare Kubernetes YAML Manifests
 
 # Replace placeholder in rstudio-deployment.yaml template with real image tag
-sed "s|\${rstudio_image}|$IMAGE_TAG|g" yaml/rstudio-deployment.yaml.tmpl > ../rstudio-deployment.yaml || {
+sed "s|\${rstudio_image}|$IMAGE_TAG|g" yaml/rstudio-app.yaml.tmpl > ../rstudio-app.yaml || {
     echo "ERROR: Failed to generate Kubernetes deployment file. Exiting."
     exit 1
 }
-cp yaml/rstudio-service.yaml.tmpl  ../rstudio-service.yaml
-cp yaml/rstudio-ingress.yaml.tmpl  ../rstudio-ingress.yaml
+#cp yaml/rstudio-service.yaml.tmpl  ../rstudio-service.yaml
+#cp yaml/rstudio-ingress.yaml.tmpl  ../rstudio-ingress.yaml
 
 cd .. || exit
 
