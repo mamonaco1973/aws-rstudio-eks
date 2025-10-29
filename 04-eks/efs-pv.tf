@@ -165,14 +165,19 @@ resource "kubernetes_persistent_volume" "efs_pv" {
     capacity = {
       storage = "1Ti"
     }
-    volume_mode                      = "Filesystem"
     access_modes                     = ["ReadWriteMany"]
     persistent_volume_reclaim_policy = "Retain"
     storage_class_name               = kubernetes_storage_class.efs_sc.metadata[0].name
+    mount_options                    = ["tls"]  # optional but recommended
 
-    csi {
-      driver        = "efs.csi.aws.com"
-      volume_handle = data.aws_efs_file_system.efs.id   # fs-xxxxxxxx
+    # <-- This wrapper block is required by the Terraform Kubernetes provider
+    persistent_volume_source {
+      csi {
+        driver        = "efs.csi.aws.com"
+        volume_handle = data.aws_efs_file_system.efs.id  # e.g., fs-0abc123def456
+        read_only     = false
+        # volume_attributes = {}  # optional
+      }
     }
   }
 
@@ -180,3 +185,4 @@ resource "kubernetes_persistent_volume" "efs_pv" {
     kubernetes_storage_class.efs_sc
   ]
 }
+
