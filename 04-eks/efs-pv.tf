@@ -157,6 +157,9 @@ resource "kubernetes_storage_class" "efs_sc" {
 # Static Persistent Volume for shared EFS filesystem
 # ------------------------------------------------------------------------------ 
 resource "kubernetes_persistent_volume" "efs_pv" {
+
+  provider = kubernetes.eks
+
   metadata {
     name = "efs-pv"
   }
