@@ -20,8 +20,11 @@ resource "aws_iam_policy" "efs_csi_driver_policy" {
           "elasticfilesystem:DescribeAccessPoints",
           "elasticfilesystem:DescribeFileSystems",
           "elasticfilesystem:DescribeMountTargets",
+          "elasticfilesystem:DescribeMountTargetSecurityGroups",
           "elasticfilesystem:CreateAccessPoint",
-          "elasticfilesystem:DeleteAccessPoint"
+          "elasticfilesystem:DeleteAccessPoint",
+          "elasticfilesystem:TagResource",
+          "elasticfilesystem:DescribeTags"
         ],
         Resource = "*"
       }
