@@ -33,9 +33,9 @@ kubectl delete -f rstudio-ingress.yaml
 
 cd 04-eks || { echo "ERROR: Directory 04-eks not found."; exit 1; }
 terraform init
-echo "NOTE: Deleting nginx_ingress..."
-terraform destroy -target=helm_release.nginx_ingress \
-  -auto-approve > /dev/null 2> /dev/null
+#echo "NOTE: Deleting nginx_ingress..."
+#terraform destroy -target=helm_release.nginx_ingress \
+#  -auto-approve > /dev/null 2> /dev/null
 terraform destroy -auto-approve
 cd .. || exit
 
