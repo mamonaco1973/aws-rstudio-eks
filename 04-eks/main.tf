@@ -29,3 +29,12 @@ provider "aws" {
 # ------------------------------------------------------------------------------
 data "aws_caller_identity" "current" {} # Returns the AWS account ID and ARN
 data "aws_region" "current" {}          # Returns the currently configured region
+
+
+# ------------------------------------------------------------------------------------------
+# Secrets Manager: AD Admin Credentials
+# - Retrieves stored secret for AD administrator credentials
+# ------------------------------------------------------------------------------------------
+data "aws_secretsmanager_secret" "admin_secret" {
+  name = "admin_ad_credentials"
+}

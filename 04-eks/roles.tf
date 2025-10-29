@@ -141,3 +141,87 @@ resource "aws_iam_role_policy_attachment" "cluster_autoscaler_attach" {
   role       = aws_iam_role.cluster_autoscaler.name
   policy_arn = aws_iam_policy.cluster_autoscaler.arn
 }
+
+# ------------------------------------------------------------------------------
+# Policy: Allow Secrets Manager Read Access
+# ------------------------------------------------------------------------------
+resource "aws_iam_policy" "secrets_read" {
+  name        = "SecretsManagerRead"
+  description = "Allow EKS pods to read from Secrets Manager"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# ------------------------------------------------------------------------------
+# Attach Policy to Role
+# ------------------------------------------------------------------------------
+resource "aws_iam_role_policy_attachment" "eks_secrets_read_attach" {
+  role       = aws_iam_role.eks_secrets_reader.name
+  policy_arn = aws_iam_policy.secrets_read.arn
+}
+
+# ==============================================================================
+# IAM Role: EKS Secrets Reader (IRSA)
+# ------------------------------------------------------------------------------
+# Allows pods in EKS to read secrets from AWS Secrets Manager.
+# ==============================================================================
+resource "aws_iam_role" "eks_secrets_reader" {
+  name = "EKSSecretsReaderRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.eks_oidc_provider.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            # Replace namespace:serviceaccount below with your actual SA
+            "${replace(
+              aws_iam_openid_connect_provider.eks_oidc_provider.url,
+              "https://",
+              ""
+            )}:sub" = "system:serviceaccount:default:default"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# ==============================================================================
+# Kubernetes Service Account: secrets-reader-sa
+# ------------------------------------------------------------------------------
+# Creates a Kubernetes service account in the specified namespace
+# and binds it to the IAM Role (EKSSecretsReaderRole) via annotation.
+# ==============================================================================
+resource "kubernetes_service_account" "secrets_reader_sa" {
+  provider = kubernetes.eks  # uses your configured EKS kubernetes provider
+
+  metadata {
+    name      = "secrets-reader-sa"   # Service account name
+    namespace = "default"             # Adjust if needed
+    annotations = {
+      "eks.amazonaws.com/role-arn" = aws_iam_role.eks_secrets_reader.arn
+    }
+  }
+
+  depends_on = [
+    aws_iam_role.eks_secrets_reader
+  ]
+}
