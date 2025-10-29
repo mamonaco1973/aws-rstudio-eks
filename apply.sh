@@ -98,18 +98,18 @@ fi
 # Define full image tag and build Docker image
 IMAGE_TAG="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/rstudio:rstudio-server-rc1"
 
-#docker build \
-# --build-arg RSTUDIO_PASSWORD="${RSTUDIO_PASSWORD}" \
-# -t "${IMAGE_TAG}" . || {
-# echo "ERROR: Docker build failed. Exiting."
-#  exit 1
-#}
+docker build \
+ --build-arg RSTUDIO_PASSWORD="${RSTUDIO_PASSWORD}" \
+ -t "${IMAGE_TAG}" . || {
+ echo "ERROR: Docker build failed. Exiting."
+  exit 1
+}
 
 # Push Docker image to ECR
-#docker push "${IMAGE_TAG}" || {
-#  echo "ERROR: Docker push failed. Exiting."
-#  exit 1
-#}
+docker push "${IMAGE_TAG}" || {
+  echo "ERROR: Docker push failed. Exiting."
+  exit 1
+}
 
 cd ../.. || exit
 
