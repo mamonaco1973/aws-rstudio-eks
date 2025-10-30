@@ -43,6 +43,7 @@ cat <<'EOF' | tee /etc/pam.d/rstudio > /dev/null
 auth     sufficient   pam_sss.so
 auth     sufficient   pam_unix.so
 auth     required     pam_deny.so
+auth     [success=ok new_authtok_reqd=ok ignore=ignore user_unknown=bad default=die] pam_exec.so /etc/pam.d/rstudio-mkhomedir.sh
 
 # --- Account management ---
 account  sufficient   pam_sss.so
@@ -54,8 +55,6 @@ session  required     pam_limits.so
 session  optional     pam_sss.so
 session  optional     pam_unix.so
 
-# --- Create home directory if missing ---
-session  optional     pam_exec.so /etc/pam.d/rstudio-mkhomedir.sh
 EOF
 
 # ---------------------------------------------------------------------------------
