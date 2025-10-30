@@ -1,58 +1,115 @@
 # ==============================================================================
-# RStudio App - Combined Kubernetes Manifest
+# RStudio App - Combined Kubernetes Manifest (Secrets Mounted as Files)
 # ------------------------------------------------------------------------------
-# Includes PersistentVolumeClaim, Deployment, Service, and Ingress for RStudio.
-# Replace ${rstudio_image} before applying.
+# This manifest deploys an RStudio Server container into a Kubernetes cluster,
+# configured to authenticate users through Active Directory (AD) using SSSD.
+# It defines:
+#   1. A Secret containing configuration parameters (admin_secret, domain_fqdn, region)
+#   2. A PersistentVolumeClaim backed by EFS for shared home directories
+#   3. A Deployment for the RStudio container with Secret mounted as files
+#   4. A Service for internal cluster access
+#   5. An ALB Ingress for external access over HTTP
 # ==============================================================================
 
+# --- Secret: RStudio Configuration -------------------------------------------
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rstudio-config                     # Name used to reference this secret
+type: Opaque                               # Standard type for arbitrary key-value data
+stringData:
+  admin_secret: "admin_ad_credentials"     # Name of AWS Secrets Manager secret holding AD admin creds
+  domain_fqdn: "rstudio.mikecloud.com"     # Fully Qualified Domain Name (FQDN) of AD domain to join
+  region: "us-east-1"                      # AWS region for Secrets Manager API calls
+# Notes:
+# - The values here are low sensitivity; true credentials are stored in AWS Secrets Manager.
+# - These keys are mounted as text files inside the container, not as environment vars,
+#   reducing risk of exposure through 'kubectl describe pod' or /proc.
+---
 # --- PersistentVolumeClaim (EFS) ---------------------------------------------
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: efs-claim
+  name: efs-claim                          # PVC name referenced in the Deployment
 spec:
   accessModes:
-    - ReadWriteMany
-  storageClassName: efs-sc
+    - ReadWriteMany                        # Allows multiple pods to share the same volume
+  storageClassName: efs-sc                 # StorageClass provisioned by AWS EFS CSI driver
   resources:
     requests:
-      storage: 1Gi
+      storage: 1Gi                         # Minimum size (logical request, not quota-enforcing for EFS)
+# Notes:
+# - This PVC provides shared /home-style storage persisted in EFS.
+# - Allows users’ home directories and R libraries to persist across container restarts.
 ---
 # --- Deployment ---------------------------------------------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rstudio-server
+  name: rstudio                     # Deployment name (unique within namespace)
   labels:
-    app: rstudio-server
+    app: rstudio                    # Common label for selector and grouping
 spec:
-  replicas: 1
+  replicas: 1                              # Single instance of RStudio Server
   selector:
     matchLabels:
-      app: rstudio-server
+      app: rstudio                  # Selector matching the pod template
   template:
     metadata:
       labels:
-        app: rstudio-server
+        app: rstudio                # Must match the selector above
     spec:
-      # Associate the IRSA-enabled Service Account
+      # ------------------------------------------------------------------------
+      # Service Account
+      # ------------------------------------------------------------------------
       serviceAccountName: secrets-reader-sa
+      # This service account should be IRSA-enabled (AWS IAM Role for Service Account)
+      # so that the container can securely call AWS Secrets Manager APIs without
+      # embedding static IAM credentials.
 
+      # ------------------------------------------------------------------------
+      # Container Specification
+      # ------------------------------------------------------------------------
       containers:
       - name: rstudio
-        image: ${rstudio_image}
+        image: ${rstudio_image}            # Replace this placeholder with your image URI
         ports:
-        - containerPort: 8787
+        - containerPort: 8787              # Default RStudio Server web interface port
 
-        # Mount EFS PVC at /efs for validation
+        # ----------------------------------------------------------------------
+        # Secret Volume Mount (Configuration)
+        # ----------------------------------------------------------------------
+        # Mount the Kubernetes Secret as individual files inside the container
+        # at /etc/rstudio-config/. Each key from the Secret becomes a file.
+        # Example:
+        #   /etc/rstudio-config/admin_secret
+        #   /etc/rstudio-config/domain_fqdn
+        #   /etc/rstudio-config/region
         volumeMounts:
+        - name: rstudio-config-vol
+          mountPath: /etc/rstudio-config
+          readOnly: true                   # Prevent modification from within container
+
+        # ----------------------------------------------------------------------
+        # EFS Volume Mount (Persistent Home Directories)
+        # ----------------------------------------------------------------------
+        # Mounts the shared EFS volume at /efs — typically used to back /home
+        # directories or shared R data libraries for all AD users.
         - name: efs-storage
           mountPath: /efs
 
+      # ------------------------------------------------------------------------
+      # Volumes
+      # ------------------------------------------------------------------------
       volumes:
+      - name: rstudio-config-vol
+        secret:
+          secretName: rstudio-config       # Reference the Secret defined above
+          # Files appear with 0644 permissions by default; modify if stricter perms needed.
+
       - name: efs-storage
         persistentVolumeClaim:
-          claimName: efs-claim
+          claimName: efs-claim             # Reference to the EFS PVC defined earlier
 ---
 # --- Service ------------------------------------------------------------------
 apiVersion: v1
@@ -60,14 +117,17 @@ kind: Service
 metadata:
   name: rstudio-service
   labels:
-    app: rstudio-server
+    app: rstudio
 spec:
-  type: ClusterIP
+  type: ClusterIP                          # Internal-only service type (no external IP)
   selector:
-    app: rstudio-server
+    app: rstudio                    # Routes traffic to pods with this label
   ports:
-  - port: 8787
-    targetPort: 8787
+  - port: 8787                             # Service port (inside cluster)
+    targetPort: 8787                       # Pod port (exposed by container)
+# Notes:
+# - Used as the backend target for the Ingress below.
+# - Within cluster, other services can connect via 'rstudio-service:8787'.
 ---
 # --- Ingress ------------------------------------------------------------------
 apiVersion: networking.k8s.io/v1
@@ -75,21 +135,46 @@ kind: Ingress
 metadata:
   name: rstudio-ingress
   annotations:
+    # --------------------------------------------------------------------------
+    # AWS Load Balancer (ALB) Ingress Controller Settings
+    # --------------------------------------------------------------------------
     alb.ingress.kubernetes.io/scheme: internet-facing
+    # Creates an internet-accessible ALB rather than internal-only
+
     alb.ingress.kubernetes.io/target-type: ip
+    # Targets pods directly via IP (works better with dynamic pods)
+
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    # ALB listener configuration — HTTP only. For production, add HTTPS listener.
+
     alb.ingress.kubernetes.io/healthcheck-path: /auth-sign-in
+    # Health check endpoint for RStudio Server login page.
+    # Adjust path if custom reverse proxy or sign-in endpoint differs.
+
     alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=3600
-    alb.ingress.kubernetes.io/target-group-attributes: stickiness.enabled=true,stickiness.type=lb_cookie,stickiness.lb_cookie.duration_seconds=3600
+    # Increases ALB idle timeout for long-lived interactive R sessions.
+
+    alb.ingress.kubernetes.io/target-group-attributes: >
+      stickiness.enabled=true,
+      stickiness.type=lb_cookie,
+      stickiness.lb_cookie.duration_seconds=86400
+    # Enables session stickiness (1-day duration) to ensure user sessions
+    # persist on the same RStudio pod, avoiding unexpected disconnections.
+
 spec:
-  ingressClassName: alb
+  ingressClassName: alb                    # Use AWS Load Balancer Controller
   rules:
     - http:
         paths:
-        - path: /
+        - path: /                          # Match all requests to root path
           pathType: Prefix
           backend:
             service:
-              name: rstudio-service
+              name: rstudio-service         # Route traffic to internal service
               port:
                 number: 8787
+# Notes:
+# - The Ingress provisions an external ALB in AWS.
+# - For HTTPS, attach an ACM certificate via annotation
+#   e.g., alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123456789012:certificate/...
+# - DNS can be managed via ExternalDNS to map the domain (rstudio.mikecloud.com) to the ALB endpoint.
