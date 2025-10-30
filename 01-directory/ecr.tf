@@ -1,14 +1,28 @@
-# AWS Elastic Container Registry (ECR) for storing Docker container images
-# Stores rstudio containers
+# ==========================================================================================
+# AWS Elastic Container Registry (ECR)
+# ------------------------------------------------------------------------------------------
+# Purpose:
+#   - Creates a dedicated Amazon ECR repository for RStudio container images
+#   - Enables vulnerability scanning and mutable image tag management
+#   - Intended for use with RStudio deployments on EKS or other container platforms
+# ==========================================================================================
 
 resource "aws_ecr_repository" "rstudio" {
-  name                 = "rstudio" # ECR repository name
-  image_tag_mutability = "MUTABLE" # Allow overwriting of image tags
 
-  # Enable automatic image scanning for vulnerabilities
+  # Identification -----------------------------------------------------------
+  name = "rstudio" # Repository name within the AWS account
+
+  # Image tag behavior ------------------------------------------------------
+  image_tag_mutability = "MUTABLE" # Allow overwriting of existing image tags
+  # (e.g., for iterative builds during testing)
+
+  # Image scanning ----------------------------------------------------------
   image_scanning_configuration {
-    scan_on_push = true # Scan images on push
+    scan_on_push = true # Automatically scan images when pushed
+  }
+
+  # Tags -------------------------------------------------------------------
+  tags = {
+    Name = "RStudio ECR Repository"
   }
 }
-
-
