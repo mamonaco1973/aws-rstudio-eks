@@ -94,6 +94,7 @@ chmod 600 /etc/skel/.Xauthority
 
 # Restart SSSD to apply configuration changes and activate the domain join.
 sudo systemctl restart sssd
+sleep 5  # Allow some time for SSSD to stabilize
 
 # ------------------------------------------------------------------------------
 # Launch RStudio Server
