@@ -42,8 +42,8 @@ cat <<'EOF' | tee /etc/pam.d/rstudio > /dev/null
 # --- Authentication ---
 auth     sufficient   pam_sss.so
 auth     sufficient   pam_unix.so
-auth     required     pam_deny.so
 auth     [success=ok new_authtok_reqd=ok ignore=ignore user_unknown=bad default=die] pam_exec.so /etc/pam.d/rstudio-mkhomedir.sh
+auth     required     pam_deny.so
 
 # --- Account management ---
 account  sufficient   pam_sss.so
