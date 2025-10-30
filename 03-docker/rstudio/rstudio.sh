@@ -37,28 +37,38 @@ rm -f -r rstudio-server-latest-amd64.deb
 
 cat <<'EOF' | tee /etc/pam.d/rstudio > /dev/null
 #%PAM-1.0
-# RStudio PAM stack for Active Directory via SSSD
+# RStudio PAM stack supporting both AD (SSSD) and local users
 
 # --- Authentication ---
 auth     sufficient   pam_sss.so
+auth     sufficient   pam_unix.so
 auth     required     pam_deny.so
 
 # --- Account management ---
 account  sufficient   pam_sss.so
+account  sufficient   pam_unix.so
 account  required     pam_deny.so
 
 # --- Session setup ---
 session  required     pam_limits.so
 session  optional     pam_sss.so
+session  optional     pam_unix.so
 
 # --- Create home directory if missing ---
-# This calls a simple shell script to create /efs/home/<username>
-# You can adjust paths as needed.
 session  optional     pam_exec.so /etc/pam.d/rstudio-mkhomedir.sh
 EOF
 
 # ---------------------------------------------------------------------------------
-# Deploy PAM script to create home directories on first login
+# Configure PAM to auto-create home directories on first login
+# ---------------------------------------------------------------------------------
+
+grep -qF "pam_mkhomedir.so" /etc/pam.d/common-session || {
+  echo "session required pam_mkhomedir.so skel=/etc/skel/ umask=0022" \
+  | sudo tee -a /etc/pam.d/common-session
+}
+
+# ---------------------------------------------------------------------------------
+# Deploy PAM script to create home directories on first rstudio login
 # ---------------------------------------------------------------------------------
 
 cat <<'EOF' | tee /etc/pam.d/rstudio-mkhomedir.sh > /dev/null
