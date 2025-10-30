@@ -18,8 +18,8 @@ metadata:
   name: rstudio-config                     # Name used to reference this secret
 type: Opaque                               # Standard type for arbitrary key-value data
 stringData:
-  admin_secret: "admin_ad_credentials"     # Name of AWS Secrets Manager secret holding AD admin creds
-  domain_fqdn: "rstudio.mikecloud.com"     # Fully Qualified Domain Name (FQDN) of AD domain to join
+  admin_secret: "${admin_secret}"          # Name of AWS Secrets Manager secret holding AD admin creds
+  domain_fqdn: "${domain_fqdn}"            # Fully Qualified Domain Name (FQDN) of AD domain to join
   region: "us-east-1"                      # AWS region for Secrets Manager API calls
 # Notes:
 # - The values here are low sensitivity; true credentials are stored in AWS Secrets Manager.
