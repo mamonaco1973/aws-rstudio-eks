@@ -95,21 +95,37 @@ if [ -z "$RSTUDIO_PASSWORD" ] || [ "$RSTUDIO_PASSWORD" = "null" ]; then
   exit 1
 fi
 
-# Define full image tag and build Docker image
+# ==============================================================================
+# Build and Push RStudio Docker Image (only if missing from ECR)
+# ==============================================================================
+
 IMAGE_TAG="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/rstudio:rstudio-server-rc1"
 
-docker build \
- --build-arg RSTUDIO_PASSWORD="${RSTUDIO_PASSWORD}" \
- -t "${IMAGE_TAG}" . || {
- echo "ERROR: Docker build failed. Exiting."
-  exit 1
-}
+echo "Checking if image already exists in ECR..."
 
-# Push Docker image to ECR
-docker push "${IMAGE_TAG}" || {
-  echo "ERROR: Docker push failed. Exiting."
-  exit 1
-}
+# Query ECR for the image
+if aws ecr describe-images \
+    --repository-name rstudio \
+    --image-ids imageTag="rstudio-server-rc1" \
+    --region "${AWS_DEFAULT_REGION}" >/dev/null 2>&1; then
+  echo "NOTE: Image already exists in ECR: ${IMAGE_TAG}"
+else
+  echo "WARNING: Image not found in ECR. Building and pushing..."
+
+  docker build \
+    --build-arg RSTUDIO_PASSWORD="${RSTUDIO_PASSWORD}" \
+    -t "${IMAGE_TAG}" . || {
+      echo "ERROR: Docker build failed. Exiting."
+      exit 1
+    }
+
+  docker push "${IMAGE_TAG}" || {
+    echo "ERROR: Docker push failed. Exiting."
+    exit 1
+  }
+
+  echo "NOTE: Image successfully built and pushed to ECR: ${IMAGE_TAG}"
+fi
 
 cd ../.. || exit
 
@@ -156,15 +172,14 @@ kubectl apply -f rstudio-app.yaml || {
   exit 1
 }
 
-
 # ------------------------------------------------------------------------------
 # Phase 6: Build Validation
 # ------------------------------------------------------------------------------
 # Runs post-deployment checks for DNS, domain join, and instance health.
 echo "NOTE: Running build validation..."
-# ./validate.sh  # Uncomment once validation script is implemented
 
-echo "NOTE: Infrastructure build complete."
+./validate.sh  # Uncomment once validation script is implemented
+
 # ==============================================================================
 # End of Script
 # ==============================================================================
