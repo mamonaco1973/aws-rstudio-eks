@@ -70,9 +70,9 @@ resource "aws_eks_node_group" "rstudio_nodes" {
   }
 
   scaling_config {
-    desired_size = 1 # Desired number of worker nodes
-    max_size     = 4 # Maximum scaling size
-    min_size     = 1 # Minimum number of nodes
+    desired_size = 2 # Desired number of worker nodes
+    max_size     = 2 # Maximum scaling size
+    min_size     = 2 # Minimum number of nodes
   }
 
   depends_on = [
