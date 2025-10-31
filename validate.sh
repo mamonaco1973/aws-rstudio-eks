@@ -20,7 +20,6 @@ for ((i=1; i<=MAX_ATTEMPTS; i++)); do
     --output jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
 
   if [[ -n "$LB_ADDRESS" ]]; then
-    echo "NOTE: Load Balancer hostname detected:"
     echo "NOTE: RStudio Ingress Load Balancer: $LB_ADDRESS"
     export LB_ADDRESS
     break
@@ -42,7 +41,6 @@ for ((j=1; j<=MAX_ATTEMPTS; j++)); do
   STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://${LB_ADDRESS}/auth-sign-in")
 
   if [[ "$STATUS_CODE" == "200" ]]; then
-    echo "NOTE: Load Balancer endpoint is ready (HTTP 200)"
     echo "NOTE: RStudio available at: http://${LB_ADDRESS}"
     exit 0
   fi
