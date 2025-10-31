@@ -36,10 +36,10 @@ if [[ -z "$LB_ADDRESS" ]]; then
 fi
 
 # --- Step 2: Wait for LB endpoint to return HTTP 200 -----------------------------
-echo "Waiting for Load Balancer endpoint (http://${LB_ADDRESS}) to return HTTP 200..."
+echo "NOTE: Waiting for Load Balancer endpoint (http://${LB_ADDRESS}) to return HTTP 200..."
 
 for ((j=1; j<=MAX_ATTEMPTS; j++)); do
-  STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://${LB_ADDRESS}")
+  STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://${LB_ADDRESS}/auth-sign-in")
 
   if [[ "$STATUS_CODE" == "200" ]]; then
     echo "NOTE: Load Balancer endpoint is ready (HTTP 200)"
