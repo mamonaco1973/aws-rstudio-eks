@@ -10,8 +10,6 @@ INGRESS_NAME="rstudio-ingress"
 MAX_ATTEMPTS=30
 SLEEP_SECONDS=10
 
-echo "Waiting for Load Balancer address for Ingress: ${INGRESS_NAME}..."
-
 for ((i=1; i<=MAX_ATTEMPTS; i++)); do
   LB_ADDRESS=$(kubectl get ingress ${INGRESS_NAME} \
     --namespace ${NAMESPACE} \
