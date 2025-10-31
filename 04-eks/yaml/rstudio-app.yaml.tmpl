@@ -50,7 +50,7 @@ metadata:
   labels:
     app: rstudio                    # Common label for selector and grouping
 spec:
-  replicas: 1                              # Single instance of RStudio Server
+  replicas: 2                       # Two instances of RStudio Server
   selector:
     matchLabels:
       app: rstudio                  # Selector matching the pod template
@@ -75,6 +75,22 @@ spec:
         image: ${rstudio_image}            # Replace this placeholder with your image URI
         ports:
         - containerPort: 8787              # Default RStudio Server web interface port
+
+        # ----------------------------------------------------------------------
+        # Resource Requests & Limits
+        # ----------------------------------------------------------------------
+        # These values are tuned for t3.medium nodes (2 vCPU, 4 GiB memory).
+        # The pod requests enough CPU and memory that only one can fit per node.
+        resources:
+          requests:
+            cpu: "1200m"                   # Request ~1.2 vCPU
+            memory: "2500Mi"               # Request ~2.5 GiB RAM
+          limits:
+            cpu: "2000m"                   # Allow up to full 2 vCPU burst
+            memory: "3500Mi"               # Cap memory near node capacity
+        # Notes:
+        # - With these requests, each t3.medium node can fit only one RStudio pod.
+        # - When replicas=2, the Cluster Autoscaler must launch a second node.
 
         # ----------------------------------------------------------------------
         # Secret Volume Mount (Configuration)
