@@ -89,6 +89,7 @@ sudo sed -i 's|fallback_homedir = /home/%u@%d|fallback_homedir = /home/%u|' \
 
 # Create a symbolic link to a shared directory (e.g., /efs) if applicable.
 ln -s /efs /etc/skel/efs
+sudo sed -i 's/^\(\s*HOME_MODE\s*\)[0-9]\+/\10700/' /etc/login.defs
 
 # Pre-create an empty `.Xauthority` file to suppress warnings in RStudio
 touch /etc/skel/.Xauthority
@@ -97,6 +98,23 @@ chmod 600 /etc/skel/.Xauthority
 # Restart SSSD to apply configuration changes and activate the domain join.
 sudo systemctl restart sssd
 sleep 5  # Allow some time for SSSD to stabilize
+
+# ---------------------------------------------------------------------------------
+# Configure R Library Paths to include /efs/rlibs
+# ---------------------------------------------------------------------------------
+
+cat <<'EOF' | sudo tee /usr/lib/R/etc/Rprofile.site > /dev/null
+local({
+  userlib <- Sys.getenv("R_LIBS_USER")
+  if (!dir.exists(userlib)) {
+    dir.create(userlib, recursive = TRUE, showWarnings = FALSE)
+  }
+  efs <- "/efs/rlibs"
+  .libPaths(c(userlib, efs, .libPaths()))
+})
+EOF
+
+chgrp rstudio-admins /efs/rlibs
 
 # ------------------------------------------------------------------------------
 # Launch RStudio Server
