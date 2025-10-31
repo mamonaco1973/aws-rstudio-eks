@@ -40,9 +40,9 @@ cat <<'EOF' | tee /etc/pam.d/rstudio > /dev/null
 # RStudio PAM stack supporting both AD (SSSD) and local users
 
 # --- Authentication ---
+auth     optional     pam_exec.so debug /etc/pam.d/rstudio-mkhomedir.sh
 auth     sufficient   pam_sss.so
 auth     sufficient   pam_unix.so
-auth     [success=ok new_authtok_reqd=ok ignore=ignore user_unknown=bad default=die] pam_exec.so /etc/pam.d/rstudio-mkhomedir.sh
 auth     required     pam_deny.so
 
 # --- Account management ---
@@ -72,6 +72,7 @@ grep -qF "pam_mkhomedir.so" /etc/pam.d/common-session || {
 
 cat <<'EOF' | tee /etc/pam.d/rstudio-mkhomedir.sh > /dev/null
 #!/bin/bash
+echo "NOTE: Creating home directory for user $PAM_USER"
 su -c "exit" $PAM_USER
 EOF
 
