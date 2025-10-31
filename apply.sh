@@ -101,7 +101,7 @@ fi
 
 IMAGE_TAG="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/rstudio:rstudio-server-rc1"
 
-echo "Checking if image already exists in ECR..."
+echo "NOTE: Checking if image already exists in ECR..."
 
 # Query ECR for the image
 if aws ecr describe-images \
