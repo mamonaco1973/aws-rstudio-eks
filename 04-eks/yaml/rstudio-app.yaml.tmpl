@@ -97,6 +97,10 @@ spec:
         # directories or shared R data libraries for all AD users.
         - name: efs-storage
           mountPath: /efs
+        # --- Added lines to mount the /home subdirectory on EFS ---------------
+        - name: efs-storage
+          mountPath: /home
+          subPath: home
 
       # ------------------------------------------------------------------------
       # Volumes
