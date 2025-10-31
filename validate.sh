@@ -1,3 +1,37 @@
+#!/bin/bash
+# ==============================================================================
+# Wait for RStudio Ingress Load Balancer Address
+# ------------------------------------------------------------------------------
+# This script loops until the ingress resource gets a public hostname assigned.
+# ==============================================================================
+
+NAMESPACE="default"
+INGRESS_NAME="rstudio-ingress"
+MAX_ATTEMPTS=30
+SLEEP_SECONDS=10
+
+echo "Waiting for Load Balancer address for Ingress: ${INGRESS_NAME}..."
+
+for ((i=1; i<=MAX_ATTEMPTS; i++)); do
+  LB_ADDRESS=$(kubectl get ingress ${INGRESS_NAME} \
+    --namespace ${NAMESPACE} \
+    --output jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
+
+  if [[ -n "$LB_ADDRESS" ]]; then
+    echo "NOTE: Load Balancer ready:"
+    echo "NOTE: RStudio Ingress Load Balancer: $LB_ADDRESS"
+    export LB_ADDRESS
+    exit 0
+  fi
+
+  echo "WARNING: Attempt $i/${MAX_ATTEMPTS}: Load Balancer not ready yet... retrying in ${SLEEP_SECONDS}s"
+  sleep ${SLEEP_SECONDS}
+done
+
+echo "ERROR: Timed out after ${MAX_ATTEMPTS} attempts waiting for Load Balancer address."
+exit 1
+
+
 # #!/bin/bash
 # # --------------------------------------------------------------------------------------------------
 # # Description:
