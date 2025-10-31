@@ -115,6 +115,7 @@ local({
 EOF
 
 chgrp rstudio-admins /efs/rlibs
+rm -f -r /home/rstudio 
 
 # ------------------------------------------------------------------------------
 # Launch RStudio Server
