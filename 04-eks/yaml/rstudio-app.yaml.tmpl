@@ -16,6 +16,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: rstudio-config                     # Name used to reference this secret
+  defaultMode: 0400                        # File permissions for mounted files (owner read-only)
 type: Opaque                               # Standard type for arbitrary key-value data
 stringData:
   admin_secret: "${admin_secret}"          # Name of AWS Secrets Manager secret holding AD admin creds
