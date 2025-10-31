@@ -74,7 +74,7 @@ cat <<'EOF' | tee /etc/pam.d/rstudio-mkhomedir.sh > /dev/null
 #!/bin/bash
 echo "NOTE: Creating home directory for user $PAM_USER"
 su -c "exit" $PAM_USER
-chmod 700 /home/$PAM_USER
+chmod 700 /home/*
 EOF
 
 chmod +x /etc/pam.d/rstudio-mkhomedir.sh
