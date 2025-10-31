@@ -50,7 +50,7 @@ metadata:
   labels:
     app: rstudio                    # Common label for selector and grouping
 spec:
-  replicas: 2                              # Two replicas; each must land on a different node
+  replicas: 1                              # Single instance of RStudio Server
   selector:
     matchLabels:
       app: rstudio                  # Selector matching the pod template
@@ -66,22 +66,6 @@ spec:
       # This service account should be IRSA-enabled (AWS IAM Role for Service Account)
       # so that the container can securely call AWS Secrets Manager APIs without
       # embedding static IAM credentials.
-
-      # ------------------------------------------------------------------------
-      # Pod Anti-Affinity
-      # ------------------------------------------------------------------------
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchExpressions:
-                  - key: app
-                    operator: In
-                    values:
-                      - rstudio
-              topologyKey: "kubernetes.io/hostname"
-      # This ensures that no two RStudio pods run on the same node.
-      # The Cluster Autoscaler will automatically add nodes as needed.
 
       # ------------------------------------------------------------------------
       # Container Specification
