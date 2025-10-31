@@ -109,7 +109,8 @@ resource "helm_release" "aws_efs_csi_driver" {
   ]
 
   depends_on = [
-    kubernetes_service_account.efs_csi_controller_sa
+    kubernetes_service_account.efs_csi_controller_sa,
+    aws_eks_node_group.rstudio_nodes
   ]
 }
 

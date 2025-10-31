@@ -9,8 +9,8 @@
 #   3. A Deployment for the RStudio container with Secret mounted as files
 #   4. A Service for internal cluster access
 #   5. An ALB Ingress for external access over HTTP
+#   6. A Horizontal Pod Autoscaler (HPA) that scales based on CPU utilization
 # ==============================================================================
-
 # --- Secret: RStudio Configuration -------------------------------------------
 apiVersion: v1
 kind: Secret
@@ -46,18 +46,18 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rstudio                     # Deployment name (unique within namespace)
+  name: rstudio                            # Deployment name (unique within namespace)
   labels:
-    app: rstudio                    # Common label for selector and grouping
+    app: rstudio                           # Common label for selector and grouping
 spec:
-  replicas: 2                       # Two instances of RStudio Server
+  replicas: 2                              # Initial number of RStudio Server pods
   selector:
     matchLabels:
-      app: rstudio                  # Selector matching the pod template
+      app: rstudio                         # Selector matching the pod template
   template:
     metadata:
       labels:
-        app: rstudio                # Must match the selector above
+        app: rstudio                       # Must match the selector above
     spec:
       # ------------------------------------------------------------------------
       # Service Account
@@ -90,17 +90,11 @@ spec:
             memory: "3500Mi"               # Cap memory near node capacity
         # Notes:
         # - With these requests, each t3.medium node can fit only one RStudio pod.
-        # - When replicas=2, the Cluster Autoscaler must launch a second node.
+        # - When CPU > 60%, the HPA below will add new pods, triggering node scale-up.
 
         # ----------------------------------------------------------------------
         # Secret Volume Mount (Configuration)
         # ----------------------------------------------------------------------
-        # Mount the Kubernetes Secret as individual files inside the container
-        # at /etc/rstudio-config/. Each key from the Secret becomes a file.
-        # Example:
-        #   /etc/rstudio-config/admin_secret
-        #   /etc/rstudio-config/domain_fqdn
-        #   /etc/rstudio-config/region
         volumeMounts:
         - name: rstudio-config-vol
           mountPath: /etc/rstudio-config
@@ -109,14 +103,11 @@ spec:
         # ----------------------------------------------------------------------
         # EFS Volume Mount (Persistent Home Directories)
         # ----------------------------------------------------------------------
-        # Mounts the shared EFS volume at /efs — typically used to back /home
-        # directories or shared R data libraries for all AD users.
         - name: efs-storage
           mountPath: /efs
-        # --- Added lines to mount the /home subdirectory on EFS ---------------
         - name: efs-storage
           mountPath: /home
-          subPath: home
+          subPath: home                    # Mount subdirectory for /home persistence
 
       # ------------------------------------------------------------------------
       # Volumes
@@ -126,8 +117,6 @@ spec:
         secret:
           secretName: rstudio-config       # Reference the Secret defined above
           defaultMode: 0440                # File permissions for mounted secret files
-          # Files appear with 0644 permissions by default; modify if stricter perms needed.
-
       - name: efs-storage
         persistentVolumeClaim:
           claimName: efs-claim             # Reference to the EFS PVC defined earlier
@@ -142,7 +131,7 @@ metadata:
 spec:
   type: ClusterIP                          # Internal-only service type (no external IP)
   selector:
-    app: rstudio                    # Routes traffic to pods with this label
+    app: rstudio
   ports:
   - port: 8787                             # Service port (inside cluster)
     targetPort: 8787                       # Pod port (exposed by container)
@@ -156,46 +145,55 @@ kind: Ingress
 metadata:
   name: rstudio-ingress
   annotations:
-    # --------------------------------------------------------------------------
-    # AWS Load Balancer (ALB) Ingress Controller Settings
-    # --------------------------------------------------------------------------
     alb.ingress.kubernetes.io/scheme: internet-facing
-    # Creates an internet-accessible ALB rather than internal-only
-
-    alb.ingress.kubernetes.io/target-type: ip
-    # Targets pods directly via IP (works better with dynamic pods)
-
+    alb.ingress.kubernetes.io/target-type: instance
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
-    # ALB listener configuration — HTTP only. For production, add HTTPS listener.
-
     alb.ingress.kubernetes.io/healthcheck-path: /auth-sign-in
-    # Health check endpoint for RStudio Server login page.
-    # Adjust path if custom reverse proxy or sign-in endpoint differs.
-
     alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=3600
-    # Increases ALB idle timeout for long-lived interactive R sessions.
-
     alb.ingress.kubernetes.io/target-group-attributes: >
       stickiness.enabled=true,
       stickiness.type=lb_cookie,
       stickiness.lb_cookie.duration_seconds=86400
-    # Enables session stickiness (1-day duration) to ensure user sessions
-    # persist on the same RStudio pod, avoiding unexpected disconnections.
-
 spec:
-  ingressClassName: alb                    # Use AWS Load Balancer Controller
+  ingressClassName: alb
   rules:
     - http:
         paths:
-        - path: /                          # Match all requests to root path
+        - path: /
           pathType: Prefix
           backend:
             service:
-              name: rstudio-service         # Route traffic to internal service
+              name: rstudio-service
               port:
                 number: 8787
 # Notes:
 # - The Ingress provisions an external ALB in AWS.
-# - For HTTPS, attach an ACM certificate via annotation
-#   e.g., alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123456789012:certificate/...
-# - DNS can be managed via ExternalDNS to map the domain (rstudio.mikecloud.com) to the ALB endpoint.
+# - For HTTPS, attach an ACM certificate via annotation.
+# - DNS can be managed via ExternalDNS to map rstudio.mikecloud.com to the ALB endpoint.
+---
+# --- Horizontal Pod Autoscaler (CPU-Based Scaling) ----------------------------
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rstudio-hpa
+  labels:
+    app: rstudio
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rstudio
+  minReplicas: 2                            # Keep at least two pods active
+  maxReplicas: 4                            # Allow up to four pods total
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60            # Trigger scale-up when >60% CPU average
+# Notes:
+# - HPA increases replicas when average CPU usage exceeds 60%.
+# - Cluster Autoscaler will then add nodes if necessary.
+# - Scale-down below 2 pods is disabled to ensure high availability.
+# ==============================================================================

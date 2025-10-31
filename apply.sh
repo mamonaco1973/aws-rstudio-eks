@@ -146,6 +146,11 @@ terraform apply -auto-approve
 export rstudio_image="${IMAGE_TAG}"
 export domain_fqdn="rstudio.mikecloud.com"
 export admin_secret="admin_ad_credentials"
+export efs_id=$(aws efs describe-file-systems \
+  --query "FileSystems[?Tags[?Key=='Name' && Value=='mcloud-efs']].FileSystemId" \
+  --output text)
+
+echo "EFS_ID=${efs_id}"
 
 # Render template with environment substitution
 

@@ -44,6 +44,8 @@ resource "helm_release" "aws_load_balancer_controller" {
   ]
 
   # Custom values template injects cluster name and IAM role into Helm config
+
+  depends_on = [ aws_eks_node_group.rstudio_nodes ]
 }
 
 # ==============================================================================
@@ -66,7 +68,8 @@ resource "helm_release" "cluster_autoscaler" {
   ]
 
   depends_on = [
-    kubernetes_service_account.cluster_autoscaler
+    kubernetes_service_account.cluster_autoscaler,
+    aws_eks_node_group.rstudio_nodes
   ]
 }
 

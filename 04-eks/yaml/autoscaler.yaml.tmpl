@@ -1,32 +1,37 @@
-# =============================================================
+# ==============================================================================
 # Cluster Autoscaler Configuration (values.yaml override)
-# Used with Helm to deploy the AWS Cluster Autoscaler
-# =============================================================
-
+# ------------------------------------------------------------------------------
+# Used with Helm to deploy the AWS Cluster Autoscaler.
+# This configuration disables node scale-down completely while still allowing
+# automatic scale-up when new pods cannot be scheduled due to resource limits.
+# ==============================================================================
 autoDiscovery:
-  clusterName: ${cluster_name}  # Dynamically inject the name of the EKS cluster
-                                # Enables the autoscaler to discover Auto Scaling Groups (ASGs)
-                                # based on specific AWS EC2 tags tied to this cluster
+  clusterName: ${cluster_name}  # Dynamically injects the EKS cluster name
+                                # Enables auto-discovery of Auto Scaling Groups
+                                # (ASGs) based on AWS EC2 tags tied to this cluster
 
-awsRegion: us-east-1            # AWS region where the EKS cluster and ASGs reside
-                                # Must match the region of your ASG and EKS control plane
+awsRegion: us-east-1            # AWS region of EKS control plane and ASGs
+                                # Must match your cluster and node group region
 
 rbac:
   serviceAccount:
-    create: false               # Do NOT create a new service account (already pre-created externally)
-    name: cluster-autoscaler    # Use an existing service account with the correct IAM role attached
-                                # Required for IRSA (IAM Roles for Service Accounts) to work
+    create: false               # Reuse existing ServiceAccount for IRSA
+    name: cluster-autoscaler    # Must have IAM policy allowing ASG management
 
 extraArgs:
-  balance-similar-node-groups: "true"
-  skip-nodes-with-system-pods: "false"
-  expander: least-waste
-  node-group-auto-discovery: asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/${cluster_name}
+  # --- General scaling behavior ----------------------------------------------
+  balance-similar-node-groups: "true"          # Distribute pods evenly
+  skip-nodes-with-system-pods: "false"         # Allow scale actions even if
+                                               # system pods exist on the node
+  expander: least-waste                        # Prefer least wasteful ASG
+  node-group-auto-discovery: >
+    asg:tag=k8s.io/cluster-autoscaler/enabled,
+    k8s.io/cluster-autoscaler/${cluster_name}
 
-  # 🔽 Scale-down behavior tuning
-  scale-down-enabled: "true"
-  scale-down-unneeded-time: "1m"              # Time a node must be unneeded before it's eligible for scale down
-  scale-down-delay-after-delete: "1m"         # Delay after pod deletion before scale-down is triggered
-  scale-down-delay-after-failure: "1m"        # Delay after scale-down failure before retry
-  scale-down-utilization-threshold: "0.5"     # Nodes with utilization below this are considered unneeded
-  scale-down-delay-after-add: "1m"
+  # --- Scale-down behavior (disabled) ----------------------------------------
+  scale-down-enabled: "false"                  # Disable scale-down completely
+  scale-down-unneeded-time: "10m"              # Ignored when disabled
+  scale-down-delay-after-delete: "10m"         # Ignored when disabled
+  scale-down-delay-after-failure: "10m"        # Ignored when disabled
+  scale-down-utilization-threshold: "0.5"      # Ignored when disabled
+  scale-down-delay-after-add: "10m"            # Ignored when disabled
