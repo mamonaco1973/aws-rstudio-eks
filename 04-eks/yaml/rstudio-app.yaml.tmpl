@@ -11,6 +11,42 @@
 #   5. An ALB Ingress for external access over HTTP
 #   6. A Horizontal Pod Autoscaler (HPA) that scales based on CPU utilization
 # ==============================================================================
+# --- StorageClass for EFS (Static Provisioning) -------------------------------
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: efs-sc
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: efs.csi.aws.com
+mountOptions:
+  - tls
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+# Notes:
+# - No 'parameters' block — this disables dynamic provisioning.
+# - EFS PVs must be defined manually (static provisioning).
+
+---
+# --- PersistentVolume for EFS Filesystem -------------------------------------
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: efs-pv
+spec:
+  capacity:
+    storage: 1Ti
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: efs-sc
+  mountOptions:
+    - tls
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: ${efs_id}               # Replace with your actual EFS ID
 # --- Secret: RStudio Configuration -------------------------------------------
 apiVersion: v1
 kind: Secret

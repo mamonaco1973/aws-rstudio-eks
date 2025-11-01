@@ -123,70 +123,70 @@ data "aws_efs_file_system" "efs" {
   }
 }
 
-# ------------------------------------------------------------------------------ 
-# StorageClass for static EFS mounts (shared storage)
-# ------------------------------------------------------------------------------ 
-resource "kubernetes_storage_class" "efs_sc" {
-  provider = kubernetes.eks
+# # ------------------------------------------------------------------------------ 
+# # StorageClass for static EFS mounts (shared storage)
+# # ------------------------------------------------------------------------------ 
+# resource "kubernetes_storage_class" "efs_sc" {
+#   provider = kubernetes.eks
 
-  metadata {
-    name = "efs-sc"
-    annotations = {
-      "storageclass.kubernetes.io/is-default-class" = "true"
-    }
-  }
+#   metadata {
+#     name = "efs-sc"
+#     annotations = {
+#       "storageclass.kubernetes.io/is-default-class" = "true"
+#     }
+#   }
 
-  # --------------------------------------------------------------------------
-  # IMPORTANT: Dynamic provisioning (efs-ap) parameters removed.
-  # The EFS CSI driver will now use manually defined PVs (static provisioning).
-  # --------------------------------------------------------------------------
-  storage_provisioner     = "efs.csi.aws.com"
-  mount_options           = ["tls"]
-  reclaim_policy          = "Retain"
-  volume_binding_mode     = "Immediate"
-  allow_volume_expansion  = true
+#   # --------------------------------------------------------------------------
+#   # IMPORTANT: Dynamic provisioning (efs-ap) parameters removed.
+#   # The EFS CSI driver will now use manually defined PVs (static provisioning).
+#   # --------------------------------------------------------------------------
+#   storage_provisioner     = "efs.csi.aws.com"
+#   mount_options           = ["tls"]
+#   reclaim_policy          = "Retain"
+#   volume_binding_mode     = "Immediate"
+#   allow_volume_expansion  = true
 
-  # No parameters block — this disables dynamic provisioning
+#   # No parameters block — this disables dynamic provisioning
 
-  depends_on = [
-    helm_release.aws_efs_csi_driver,
-    aws_iam_role_policy_attachment.efs_csi_policy_attach
-  ]
-}
+#   depends_on = [
+#     helm_release.aws_efs_csi_driver,
+#     aws_iam_role_policy_attachment.efs_csi_policy_attach
+#   ]
+# }
 
-# ------------------------------------------------------------------------------ 
-# Static Persistent Volume for shared EFS filesystem
-# ------------------------------------------------------------------------------ 
-resource "kubernetes_persistent_volume" "efs_pv" {
+# # ------------------------------------------------------------------------------ 
+# # Static Persistent Volume for shared EFS filesystem
+# # ------------------------------------------------------------------------------ 
+# resource "kubernetes_persistent_volume" "efs_pv" {
 
-  provider = kubernetes.eks
+#   provider = kubernetes.eks
 
-  metadata {
-    name = "efs-pv"
-  }
+#   metadata {
+#     name = "efs-pv"
+#   }
 
-  spec {
-    capacity = {
-      storage = "1Ti"
-    }
-    access_modes                     = ["ReadWriteMany"]
-    persistent_volume_reclaim_policy = "Retain"
-    storage_class_name               = kubernetes_storage_class.efs_sc.metadata[0].name
-    mount_options                    = ["tls"]  # optional but recommended
+#   spec {
+#     capacity = {
+#       storage = "1Ti"
+#     }
+#     access_modes                     = ["ReadWriteMany"]
+#     persistent_volume_reclaim_policy = "Retain"
+#     storage_class_name               = kubernetes_storage_class.efs_sc.metadata[0].name
+#     mount_options                    = ["tls"]  # optional but recommended
 
-    # <-- This wrapper block is required by the Terraform Kubernetes provider
-    persistent_volume_source {
-      csi {
-        driver        = "efs.csi.aws.com"
-        volume_handle = data.aws_efs_file_system.efs.id  # e.g., fs-0abc123def456
-        read_only     = false
-        # volume_attributes = {}  # optional
-      }
-    }
-  }
+#     # <-- This wrapper block is required by the Terraform Kubernetes provider
+#     persistent_volume_source {
+#       csi {
+#         driver        = "efs.csi.aws.com"
+#         volume_handle = data.aws_efs_file_system.efs.id  # e.g., fs-0abc123def456
+#         read_only     = false
+#         # volume_attributes = {}  # optional
+#       }
+#     }
+#   }
 
-  depends_on = [
-    kubernetes_storage_class.efs_sc
-  ]
-}
+#   depends_on = [
+#     kubernetes_storage_class.efs_sc
+#   ]
+# }
 
