@@ -150,7 +150,7 @@ export efs_id=$(aws efs describe-file-systems \
   --query "FileSystems[?Tags[?Key=='Name' && Value=='mcloud-efs']].FileSystemId" \
   --output text)
 
-echo "EFS_ID=${efs_id}"
+#echo "EFS_ID=${efs_id}"
 
 # Render template with environment substitution
 
