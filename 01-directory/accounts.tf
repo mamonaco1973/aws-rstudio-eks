@@ -32,7 +32,7 @@ resource "aws_secretsmanager_secret" "admin_secret" {
 resource "aws_secretsmanager_secret_version" "admin_secret_version" {
   secret_id = aws_secretsmanager_secret.admin_secret.id
   secret_string = jsonencode({
-    username = "Admin@${var.dns_zone}"
+    username = "${var.netbios}\\Admin"              
     password = random_password.admin_password.result
   })
 }
