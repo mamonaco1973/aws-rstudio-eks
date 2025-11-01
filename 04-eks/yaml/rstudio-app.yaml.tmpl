@@ -1,15 +1,17 @@
 # ==============================================================================
 # RStudio App - Combined Kubernetes Manifest (Secrets Mounted as Files)
-# ------------------------------------------------------------------------------
-# This manifest deploys an RStudio Server container into a Kubernetes cluster,
-# configured to authenticate users through Active Directory (AD) using SSSD.
+# ------------------------------------------------------------------------------ 
+# This manifest deploys an RStudio Server cluster into a Kubernetes environment
+# configured for Active Directory (AD) authentication using SSSD.
+#
 # It defines:
 #   1. A Secret containing configuration parameters (admin_secret, domain_fqdn, region)
 #   2. A PersistentVolumeClaim backed by EFS for shared home directories
-#   3. A Deployment for the RStudio container with Secret mounted as files
-#   4. A Service for internal cluster access
-#   5. An ALB Ingress for external access over HTTP
-#   6. A Horizontal Pod Autoscaler (HPA) that scales based on CPU utilization
+#   3. A StatefulSet for the RStudio container with Secret mounted as files
+#   4. A Service for internal cluster access (ClusterIP)
+#   5. A Headless Service for stable DNS and hostnames
+#   6. An ALB Ingress for external access over HTTP
+#   7. A Horizontal Pod Autoscaler (HPA) that scales based on CPU utilization
 # ==============================================================================
 # --- StorageClass for EFS (Static Provisioning) -------------------------------
 apiVersion: storage.k8s.io/v1
@@ -52,49 +54,67 @@ spec:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: rstudio-config                     # Name used to reference this secret
-type: Opaque                               # Standard type for arbitrary key-value data
+  name: rstudio-config
+type: Opaque
 stringData:
-  admin_secret: "${admin_secret}"          # Name of AWS Secrets Manager secret holding AD admin creds
-  domain_fqdn: "${domain_fqdn}"            # Fully Qualified Domain Name (FQDN) of AD domain to join
-  region: "us-east-1"                      # AWS region for Secrets Manager API calls
+  admin_secret: "${admin_secret}"
+  domain_fqdn: "${domain_fqdn}"
+  region: "us-east-1"
 # Notes:
-# - The values here are low sensitivity; true credentials are stored in AWS Secrets Manager.
-# - These keys are mounted as text files inside the container, not as environment vars,
-#   reducing risk of exposure through 'kubectl describe pod' or /proc.
+# - The values here are low sensitivity; credentials are stored in AWS Secrets Manager.
+# - Mounted as text files inside the container (not environment variables).
 ---
 # --- PersistentVolumeClaim (EFS) ---------------------------------------------
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: efs-claim                          # PVC name referenced in the Deployment
+  name: efs-claim
 spec:
   accessModes:
-    - ReadWriteMany                        # Allows multiple pods to share the same volume
-  storageClassName: efs-sc                 # StorageClass provisioned by AWS EFS CSI driver
+    - ReadWriteMany
+  storageClassName: efs-sc
   resources:
     requests:
-      storage: 1Gi                         # Minimum size (logical request, not quota-enforcing for EFS)
+      storage: 1Gi
 # Notes:
-# - This PVC provides shared /home-style storage persisted in EFS.
-# - Allows users’ home directories and R libraries to persist across container restarts.
+# - Shared /home-style storage persisted in EFS.
+# - Allows user home directories and R libraries to persist across pods.
 ---
-# --- Deployment ---------------------------------------------------------------
-apiVersion: apps/v1
-kind: Deployment
+# --- Headless Service for StatefulSet ----------------------------------------
+apiVersion: v1
+kind: Service
 metadata:
-  name: rstudio                            # Deployment name (unique within namespace)
+  name: rstudio
   labels:
-    app: rstudio                           # Common label for selector and grouping
+    app: rstudio
 spec:
-  replicas: 2                              # Initial number of RStudio Server pods
+  clusterIP: None
+  selector:
+    app: rstudio
+  ports:
+    - port: 8787
+      name: rstudio
+# Notes:
+# - Enables unique, stable hostnames like rstudio-0.rstudio.<namespace>.svc.
+# - Required for StatefulSet hostname resolution and AD compatibility.
+---
+# --- StatefulSet --------------------------------------------------------------
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rstudio
+  labels:
+    app: rstudio
+spec:
+  serviceName: "rstudio"
+  replicas: 2
   selector:
     matchLabels:
-      app: rstudio                         # Selector matching the pod template
+      app: rstudio
   template:
     metadata:
       labels:
-        app: rstudio                       # Must match the selector above
+        app: rstudio
     spec:
       # ------------------------------------------------------------------------
       # Service Account
@@ -109,25 +129,23 @@ spec:
       # ------------------------------------------------------------------------
       containers:
       - name: rstudio
-        image: ${rstudio_image}            # Replace this placeholder with your image URI
+        image: ${rstudio_image}            # Injected at render time
         ports:
         - containerPort: 8787              # Default RStudio Server web interface port
 
         # ----------------------------------------------------------------------
         # Resource Requests & Limits
         # ----------------------------------------------------------------------
-        # These values are tuned for t3.medium nodes (2 vCPU, 4 GiB memory).
-        # The pod requests enough CPU and memory that only one can fit per node.
         resources:
           requests:
-            cpu: "1200m"                   # Request ~1.2 vCPU
-            memory: "2500Mi"               # Request ~2.5 GiB RAM
+            cpu: "1200m"
+            memory: "2500Mi"
           limits:
-            cpu: "2000m"                   # Allow up to full 2 vCPU burst
-            memory: "3500Mi"               # Cap memory near node capacity
+            cpu: "2000m"
+            memory: "3500Mi"
         # Notes:
-        # - With these requests, each t3.medium node can fit only one RStudio pod.
-        # - When CPU > 60%, the HPA below will add new pods, triggering node scale-up.
+        # - Each t3.medium node fits one pod (2 vCPU, 4 GiB memory).
+        # - Scale-out occurs when average CPU > 60% (see HPA below).
 
         # ----------------------------------------------------------------------
         # Secret Volume Mount (Configuration)
@@ -135,7 +153,7 @@ spec:
         volumeMounts:
         - name: rstudio-config-vol
           mountPath: /etc/rstudio-config
-          readOnly: true                   # Prevent modification from within container
+          readOnly: true
 
         # ----------------------------------------------------------------------
         # EFS Volume Mount (Persistent Home Directories)
@@ -144,7 +162,7 @@ spec:
           mountPath: /efs
         - name: efs-storage
           mountPath: /home
-          subPath: home                    # Mount subdirectory for /home persistence
+          subPath: home
 
       # ------------------------------------------------------------------------
       # Volumes
@@ -152,11 +170,14 @@ spec:
       volumes:
       - name: rstudio-config-vol
         secret:
-          secretName: rstudio-config       # Reference the Secret defined above
-          defaultMode: 0440                # File permissions for mounted secret files
+          secretName: rstudio-config
+          defaultMode: 0440
       - name: efs-storage
         persistentVolumeClaim:
-          claimName: efs-claim             # Reference to the EFS PVC defined earlier
+          claimName: efs-claim
+# Notes:
+# - Each pod receives a stable, unique hostname (rstudio-0, rstudio-1, etc.).
+# - NetBIOS truncation no longer causes hostname collisions in AD.
 ---
 # --- Service ------------------------------------------------------------------
 apiVersion: v1
@@ -166,15 +187,14 @@ metadata:
   labels:
     app: rstudio
 spec:
-  type: ClusterIP                          # Internal-only service type (no external IP)
+  type: ClusterIP
   selector:
     app: rstudio
   ports:
-  - port: 8787                             # Service port (inside cluster)
-    targetPort: 8787                       # Pod port (exposed by container)
+  - port: 8787
+    targetPort: 8787
 # Notes:
-# - Used as the backend target for the Ingress below.
-# - Within cluster, other services can connect via 'rstudio-service:8787'.
+# - Internal service used by the ALB ingress.
 ---
 # --- Ingress ------------------------------------------------------------------
 apiVersion: networking.k8s.io/v1
@@ -204,9 +224,9 @@ spec:
               port:
                 number: 8787
 # Notes:
-# - The Ingress provisions an external ALB in AWS.
-# - For HTTPS, attach an ACM certificate via annotation.
-# - DNS can be managed via ExternalDNS to map rstudio.mikecloud.com to the ALB endpoint.
+# - Provisions an external ALB for access to RStudio.
+# - Attach ACM certificate for HTTPS termination.
+# - ExternalDNS can map ${domain_fqdn} to the ALB endpoint.
 ---
 # --- Horizontal Pod Autoscaler (CPU-Based Scaling) ----------------------------
 apiVersion: autoscaling/v2
@@ -218,19 +238,19 @@ metadata:
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
-    kind: Deployment
+    kind: StatefulSet
     name: rstudio
-  minReplicas: 2                            # Keep at least two pods active
-  maxReplicas: 4                            # Allow up to four pods total
+  minReplicas: 2
+  maxReplicas: 4
   metrics:
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 60            # Trigger scale-up when >60% CPU average
+          averageUtilization: 60
 # Notes:
-# - HPA increases replicas when average CPU usage exceeds 60%.
-# - Cluster Autoscaler will then add nodes if necessary.
-# - Scale-down below 2 pods is disabled to ensure high availability.
+# - HPA scales between 2–4 replicas based on CPU utilization.
+# - Cluster Autoscaler provisions nodes if required.
+# - StatefulSet ensures hostname stability and AD uniqueness.
 # ==============================================================================
