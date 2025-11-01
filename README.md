@@ -17,7 +17,7 @@ Key capabilities demonstrated:
 2. **Active Directory Authentication** – Domain-joined pods authenticate through a Samba-based AD, providing centralized user management.  
 3. **EFS-Backed Persistent Storage** – User home directories and shared R package libraries are stored on EFS, ensuring cross-pod consistency and reproducible environments.  
 4. **Application Load Balancer (ALB) Ingress** – Provides external HTTPS access with sticky sessions, TLS termination, and DNS integration.  
-5. **End-to-End IaC Workflow** – Terraform, Packer, and Helm combine to deliver a modular, reproducible deployment pipeline.
+5. **End-to-End IaC Workflow** – Terraform, Docker, and Helm combine to deliver a modular, reproducible deployment pipeline.
 
 Together, these components form a scalable, domain-aware analytics platform where RStudio users share packages, data, and authentication seamlessly across a fully managed Kubernetes environment.
 
