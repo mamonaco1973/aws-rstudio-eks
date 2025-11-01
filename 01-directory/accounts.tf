@@ -32,7 +32,7 @@ resource "aws_secretsmanager_secret" "admin_secret" {
 resource "aws_secretsmanager_secret_version" "admin_secret_version" {
   secret_id = aws_secretsmanager_secret.admin_secret.id
   secret_string = jsonencode({
-    username = "${var.netbios}\\Admin"
+    username = "Admin@${var.dns_zone}"
     password = random_password.admin_password.result
   })
 }
@@ -69,7 +69,7 @@ resource "aws_secretsmanager_secret" "jsmith_secret" {
 resource "aws_secretsmanager_secret_version" "jsmith_secret_version" {
   secret_id = aws_secretsmanager_secret.jsmith_secret.id
   secret_string = jsonencode({
-    username = "${var.netbios}\\jsmith"
+    username = "jsmith@${var.dns_zone}"
     password = random_password.jsmith_password.result
   })
 }
@@ -106,7 +106,7 @@ resource "aws_secretsmanager_secret" "edavis_secret" {
 resource "aws_secretsmanager_secret_version" "edavis_secret_version" {
   secret_id = aws_secretsmanager_secret.edavis_secret.id
   secret_string = jsonencode({
-    username = "${var.netbios}\\edavis"
+    username = "edavis@${var.dns_zone}"
     password = random_password.edavis_password.result
   })
 }
@@ -142,7 +142,7 @@ resource "aws_secretsmanager_secret" "rpatel_secret" {
 resource "aws_secretsmanager_secret_version" "rpatel_secret_version" {
   secret_id = aws_secretsmanager_secret.rpatel_secret.id
   secret_string = jsonencode({
-    username = "${var.netbios}\\rpatel"
+    username = "rpatel@${var.dns_zone}"
     password = random_password.rpatel_password.result
   })
 }
@@ -179,7 +179,7 @@ resource "aws_secretsmanager_secret" "akumar_secret" {
 resource "aws_secretsmanager_secret_version" "akumar_secret_version" {
   secret_id = aws_secretsmanager_secret.akumar_secret.id
   secret_string = jsonencode({
-    username = "${var.netbios}\\akumar"
+    username = "akumar@${var.dns_zone}"
     password = random_password.akumar_password.result
   })
 }
