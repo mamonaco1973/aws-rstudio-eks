@@ -29,6 +29,7 @@ Together, these components form a scalable, domain-aware analytics platform wher
 * [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) 
 * [Install Latest Terraform](https://developer.hashicorp.com/terraform/install)
 * [Install Docker](https://docs.docker.com/engine/install/)
+* [Install kubectl](https://kubernetes.io/docs/tasks/tools/)
 
 If this is your first time watching our content, we recommend starting with this video: [AWS + Terraform: Easy Setup](https://youtu.be/BCMQo0CB9wk). It provides a step-by-step guide to properly configure Terraform and the AWS CLI.
 
