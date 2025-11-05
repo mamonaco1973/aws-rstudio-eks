@@ -13,7 +13,6 @@
 #   - AWS CLI v2, Terraform, Docker, jq installed
 #   - AWS credentials with required permissions
 #
-# Author: [Your Name]
 # ==============================================================================
 
 # ------------------------------------------------------------------------------

@@ -12,7 +12,6 @@
 #   - AWS CLI v2 and Terraform installed
 #   - AWS credentials with required permissions
 #
-# Author: [Your Name]
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
