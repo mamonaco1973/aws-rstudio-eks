@@ -27,7 +27,7 @@ Together, these components form a scalable, domain-aware analytics platform wher
 
 * [An AWS Account](https://aws.amazon.com/console/)
 * [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) 
-* [Install Latest Terraform](https://developer.hashicorp.com/terraform/install)
+* [Install Terraform](https://developer.hashicorp.com/terraform/install)
 * [Install Docker](https://docs.docker.com/engine/install/)
 * [Install kubectl](https://kubernetes.io/docs/tasks/tools/)
 
